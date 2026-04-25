@@ -1,0 +1,18 @@
+{
+  "utorrent_host": "localhost",
+  "utorrent_port": 8080,
+  "ssl_verification": true,
+  "copyright_filter": true,
+  "enabledSources": [
+    "1337x",
+    "Eztv",
+    "KickassTorrents",
+    "Limetorrents",
+    "Rarbg",
+    "ThePirateBay",
+    "Torrent9",
+    "TorrentProject",
+    "Torrentz2",
+    "Yts"
+  ]
+}
