@@ -1,6 +1,8 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import { useState, useCallback } from 'react';
+import { ArrowDownToLine } from 'lucide-react';
+import PageHeader from '../components/PageHeader';
 import useAppStore from '../store/useAppStore';
-import { getDownloads, stopDownload, startDownloadByHash, removeDownload, openDownloadInExplorer, isHosted } from '../api/client';
+import { stopDownload, startDownloadByHash, removeDownload, openDownloadInExplorer, isHosted } from '../api/client';
 
 function formatBytes(bytes) {
   if (!bytes) return '0 B';
@@ -16,9 +18,9 @@ function formatSpeed(bytesPerSec) {
 
 function getStatusInfo(status) {
   if (status === 201) return { label: 'Downloading', color: 'bg-primary', textColor: 'text-primary', icon: '↓' };
-  if (status === 136) return { label: 'Seeding', color: 'bg-emerald-400', textColor: 'text-emerald-400', icon: '↑' };
-  if (status === 32) return { label: 'Paused', color: 'bg-amber-400', textColor: 'text-amber-400', icon: '⏸' };
-  if (status === 16) return { label: 'Error', color: 'bg-rose-400', textColor: 'text-rose-400', icon: '!' };
+  if (status === 136) return { label: 'Seeding', color: 'bg-emerald-400', textColor: 'text-emerald-700', icon: '↑' };
+  if (status === 32) return { label: 'Paused', color: 'bg-amber-400', textColor: 'text-amber-800', icon: '⏸' };
+  if (status === 16) return { label: 'Error', color: 'bg-rose-400', textColor: 'text-rose-700', icon: '!' };
   return { label: 'Stopped', color: 'bg-gray-500', textColor: 'text-gray-400', icon: '⏹' };
 }
 
@@ -27,24 +29,18 @@ const TABS = [
   { id: 'downloading', label: 'Downloading' },
   { id: 'seeding', label: 'Seeding' },
   { id: 'paused', label: 'Paused' },
-  { id: 'completed', label: 'Completed' },
+
 ];
 
-function ProgressBar({ progress, color, status }) {
-  const pct = Math.min(100, Math.max(0, progress));
-  const isActive = status === 201;
-
+function ProgressBar({ progress, color }) {
+  const percent = Math.min(100, Math.max(0, progress));
   return (
-    <div className="relative h-2 bg-surface rounded-full overflow-hidden">
-      <div
-        className={`h-full rounded-full transition-all duration-500 ${isActive ? 'progress-stripes' : ''} ${color}`}
-        style={{ width: `${pct}%` }}
-      />
-      <div className="absolute inset-0 flex items-center justify-center">
-        <span className="text-[10px] font-bold text-white drop-shadow-md" style={{ display: pct > 15 ? 'block' : 'none' }}>
-          {pct.toFixed(0)}%
-        </span>
+    <div className="flex items-center gap-2">
+      <div className="h-2 flex-1 overflow-hidden rounded-full bg-surface" role="progressbar"
+        aria-label="Transfer progress" aria-valuemin={0} aria-valuemax={100} aria-valuenow={percent}>
+        <div className={`h-full rounded-full transition-all ${color}`} style={{ width: `${percent}%` }} />
       </div>
+      <span className="text-xs font-semibold tabular-nums">{percent.toFixed(0)}%</span>
     </div>
   );
 }
@@ -57,30 +53,25 @@ function TorrentRow({ torrent, onPause, onResume, onRemove, onOpenExplorer, onCo
   const etaDisplay = eta > 0 ? `${Math.floor(eta / 3600)}h ${Math.floor((eta % 3600) / 60)}m` : eta === 0 ? 'Complete' : '—';
 
   const stats = [
-    { label: 'Size', value: `${formatBytes(downloaded)} / ${formatBytes(size)}`, valueClass: 'text-white' },
+    { label: 'Size', value: `${formatBytes(downloaded)} / ${formatBytes(size)}`, valueClass: 'text-ink' },
     { label: 'Download', value: formatSpeed(downloadSpeed || 0), valueClass: downloadSpeed > 0 ? 'text-primary' : 'text-gray-500', icon: '↓' },
     { label: 'Upload', value: formatSpeed(uploadSpeed || 0), valueClass: uploadSpeed > 0 ? 'text-accent-purple' : 'text-gray-500', icon: '↑' },
-    { label: 'ETA', value: etaDisplay, valueClass: 'text-white' },
-    { label: 'Seeds', value: `${seedsConnected || 0}`, valueClass: 'text-emerald-400' },
-    { label: 'Peers', value: `${peersConnected || 0}`, valueClass: 'text-rose-400' },
+    { label: 'ETA', value: etaDisplay, valueClass: 'text-ink' },
+    { label: 'Seeds', value: `${seedsConnected || 0}`, valueClass: 'text-emerald-700' },
+    { label: 'Peers', value: `${peersConnected || 0}`, valueClass: 'text-rose-700' },
   ];
 
   return (
     <div className={`card transition-all duration-200 ${isSelected ? 'border-primary/50 ring-1 ring-primary/20' : 'card-hover'}`}>
       <div className="flex items-start gap-4">
-        <div
-          className="w-5 h-5 rounded-md border-2 flex items-center justify-center flex-shrink-0 mt-1 cursor-pointer transition-all"
-          onClick={() => onSelect(torrent.hash)}
-          title="Select"
-        >
-          {isSelected && <div className="w-3 h-3 rounded-sm bg-primary" />}
-        </div>
+        <input type="checkbox" checked={isSelected} onChange={() => onSelect(torrent.hash)}
+          aria-label={`Select ${name}`} className="mt-1 h-4 w-4 shrink-0 cursor-pointer accent-primary" />
 
         <div className="flex-1 min-w-0">
-          <div className="flex items-start justify-between gap-4 mb-3">
+          <div className="transfer-summary flex items-start justify-between flex-wrap gap-2 mb-3">
             <div className="flex items-center gap-2 flex-wrap flex-1 min-w-0">
               <div className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${statusInfo.color}`} />
-              <h3 className="text-white font-semibold text-sm truncate" title={name}>{name}</h3>
+              <h3 className="text-ink font-semibold text-sm truncate" title={name}>{name}</h3>
               <span className={`badge text-[10px] ${statusInfo.color}/15 border ${statusInfo.color.replace('bg-', 'border-')}/25 ${statusInfo.textColor}`}>
                 {statusInfo.label}
               </span>
@@ -96,7 +87,7 @@ function TorrentRow({ torrent, onPause, onResume, onRemove, onOpenExplorer, onCo
                 </button>
               )}
               {status === 136 && (
-                <button onClick={() => onOpenExplorer(torrent)} className="btn-icon text-primary hover:text-white" title="Open in File Explorer" aria-label="Open in File Explorer">
+                <button onClick={() => onOpenExplorer(torrent)} className="btn-icon text-primary hover:text-ink" title="Open in File Explorer" aria-label="Open in File Explorer">
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 7h5l2 2h11v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7Z"/><path d="M3 7V5a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v2"/></svg>
                 </button>
               )}
@@ -109,13 +100,13 @@ function TorrentRow({ torrent, onPause, onResume, onRemove, onOpenExplorer, onCo
                   <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><polygon points="5,3 19,12 5,21" /></svg>
                 </button>
               )}
-              <button onClick={() => onRemove(torrent)} className="btn-icon text-rose-400/60 hover:text-rose-400" title="Remove">
+              <button onClick={() => onRemove(torrent)} className="btn-icon text-rose-700/60 hover:text-rose-700" title="Remove">
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3,6 5,6 21,6" /><path d="M19,6v14a2,2,0,0,1-2,2H7a2,2,0,0,1-2-2V6M8,6V4a2,2,0,0,1,2-2h4a2,2,0,0,1,2,2V6" /></svg>
               </button>
             </div>
           </div>
 
-          <ProgressBar progress={(progress || 0)} color={statusInfo.color} status={status} />
+          <ProgressBar progress={(progress || 0)} color={statusInfo.color} />
 
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-y-2 gap-x-3 mt-3 text-xs">
             {stats.map(stat => (
@@ -142,7 +133,8 @@ function TorrentRow({ torrent, onPause, onResume, onRemove, onOpenExplorer, onCo
 
           <button
             onClick={() => setExpanded(!expanded)}
-            className="mt-2 text-xs text-gray-500 hover:text-white transition-colors"
+            aria-expanded={expanded}
+            className="mt-2 text-xs text-gray-500 hover:text-ink transition-colors"
           >
             {expanded ? '▲ Less info' : '▼ More info'}
           </button>
@@ -153,9 +145,9 @@ function TorrentRow({ torrent, onPause, onResume, onRemove, onOpenExplorer, onCo
 }
 
 export default function DownloadsPage() {
-  const { torrents, setTorrents, removeTorrent, clearCompleted, addToast } = useAppStore();
+  const { torrents, connection, removeTorrent, addToast, setActivePage } = useAppStore();
   const [selectedHashes, setSelectedHashes] = useState(new Set());
-  const [loading, setLoading] = useState(true);
+  const loading = connection === 'connecting';
   const [activeTab, setActiveTab] = useState('all');
   const [filterQuery, setFilterQuery] = useState('');
   const [sortBy, setSortBy] = useState('progress');
@@ -172,7 +164,7 @@ export default function DownloadsPage() {
       if (activeTab === 'downloading' && t.status !== 201) return false;
       if (activeTab === 'seeding' && t.status !== 136) return false;
       if (activeTab === 'paused' && t.status !== 32) return false;
-      if (activeTab === 'completed' && t.status !== 136) return false;
+
       if (filterQuery && !t.name.toLowerCase().includes(filterQuery.toLowerCase())) return false;
       return true;
     })
@@ -195,7 +187,7 @@ export default function DownloadsPage() {
     downloading: activeCount,
     seeding: seedingCount,
     paused: pausedCount,
-    completed: completedCount,
+
   };
 
   const handleCopyMagnet = useCallback(async (torrent) => {
@@ -207,23 +199,7 @@ export default function DownloadsPage() {
     }
   }, [addToast]);
 
-  const fetchDownloads = useCallback(async () => {
-    try {
-      const res = await getDownloads();
-      const downloads = (res.data?.downloads || []).map(d => ({ ...d, _addedAt: Date.now() }));
-      setTorrents(downloads);
-    } catch (err) {
-      console.error('Failed to fetch downloads', err);
-    } finally {
-      setLoading(false);
-    }
-  }, [setTorrents]);
 
-  useEffect(() => {
-    fetchDownloads();
-    const interval = setInterval(fetchDownloads, 2000);
-    return () => clearInterval(interval);
-  }, [fetchDownloads]);
 
   const handlePause = useCallback(async (torrent) => {
     try {
@@ -274,8 +250,13 @@ export default function DownloadsPage() {
 
   const handleSelectAll = useCallback(() => {
     setSelectedHashes(prev => {
-      if (prev.size === filtered.length && filtered.length > 0) return new Set();
-      return new Set(filtered.map(t => t.hash));
+      const next = new Set(prev);
+      const allVisibleSelected = filtered.every(torrent => next.has(torrent.hash));
+      for (const torrent of filtered) {
+        if (allVisibleSelected) next.delete(torrent.hash);
+        else next.add(torrent.hash);
+      }
+      return next;
     });
   }, [filtered]);
 
@@ -291,32 +272,36 @@ export default function DownloadsPage() {
     setSelectedHashes(new Set());
   }, [torrents, selectedHashes, handleResume]);
 
-  const handleBulkRemove = useCallback(async () => {
-    const targets = torrents.filter(t => selectedHashes.has(t.hash));
+  const handleBulkRemove = useCallback(async (targets = torrents.filter(t => selectedHashes.has(t.hash))) => {
     if (!targets.length) return;
     if (!window.confirm(`Remove ${targets.length} selected download(s)?`)) return;
+    let removed = 0;
     for (const t of targets) {
       try {
         await removeDownload(t.hash);
         removeTorrent(t.hash);
+        removed += 1;
       } catch {
         addToast({ type: 'error', message: `Failed to remove: ${t.name.slice(0, 30)}` });
       }
     }
-    addToast({ type: 'info', message: `Removed ${targets.length} download(s)` });
+    if (removed) addToast({ type: 'info', message: `Removed ${removed} download(s)` });
     setSelectedHashes(new Set());
   }, [torrents, selectedHashes, removeTorrent, addToast]);
 
-  if (isHosted) return <div className="space-y-6 animate-fade-in"><h1 className="text-2xl font-bold text-white">Downloads</h1><div className="card py-16 text-center"><div className="text-4xl mb-4">↗</div><h2 className="text-lg font-semibold text-white mb-2">Downloads run on your device</h2><p className="text-gray-400 text-sm max-w-lg mx-auto">Choose a result on the Search page to open its magnet link in a torrent app installed on your device. Torrenza does not store your downloads or show their progress here.</p></div></div>;
+  if (isHosted) return <>
+    <PageHeader title="Downloads" />
+    <section className="card hosted-panel mt-6">
+      <span className="metric-icon violet"><ArrowDownToLine size={20} /></span>
+      <h2>Downloads run on your device</h2>
+      <p>Open a magnet link from Search to manage the transfer in your installed torrent client.</p>
+      <button className="btn-primary" onClick={() => setActivePage('search')}>Find torrents</button>
+    </section>
+  </>;
 
   return (
     <div className="space-y-6 animate-fade-in">
-      <div className="flex items-center justify-between flex-wrap gap-4">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight text-white">Downloads</h1>
-          <p className="text-gray-400 text-sm mt-1">Monitor and manage your torrent queue</p>
-        </div>
-        <div className="flex items-center gap-2">
+      <PageHeader title="Downloads" description="Monitor and manage your torrent queue.">
           <button
             onClick={() => torrents.filter(t => t.status === 201).forEach(t => handlePause(t))}
             className="btn-secondary text-sm"
@@ -332,15 +317,17 @@ export default function DownloadsPage() {
             Resume All
           </button>
           <button
-            onClick={() => { torrents.filter(t => t.status === 136).forEach(t => handleRemove(t)); clearCompleted(); }}
-            className="btn-secondary text-sm text-rose-400/70 hover:text-rose-400 border-rose-400/20"
+            onClick={() => handleBulkRemove(torrents.filter(t => t.status === 136))}
+            className="btn-secondary text-sm text-rose-700/70 hover:text-rose-700 border-rose-400/20"
             disabled={completedCount === 0}
           >
             Clear Completed
           </button>
-        </div>
-      </div>
+      </PageHeader>
 
+      {connection === 'offline' && (
+        <div className="notice" role="status">The local engine is disconnected. Transfer details may be out of date.</div>
+      )}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         <div className="card py-4 px-5 flex items-center gap-3.5">
           <div className="w-10 h-10 rounded-xl bg-primary/12 text-primary flex items-center justify-center">
@@ -351,19 +338,19 @@ export default function DownloadsPage() {
             </svg>
           </div>
           <div>
-            <div className="text-xl font-bold text-white leading-none">{activeCount}</div>
+            <div className="text-xl font-bold text-ink leading-none">{activeCount}</div>
             <div className="text-xs text-gray-500 mt-1">Downloading</div>
           </div>
         </div>
         <div className="card py-4 px-5 flex items-center gap-3.5">
-          <div className="w-10 h-10 rounded-xl bg-emerald-400/12 text-emerald-400 flex items-center justify-center">
+          <div className="w-10 h-10 rounded-xl bg-emerald-400/12 text-emerald-700 flex items-center justify-center">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <path d="M12 19V5" />
               <polyline points="5,12 12,5 19,12" />
             </svg>
           </div>
           <div>
-            <div className="text-xl font-bold text-white leading-none">{seedingCount}</div>
+            <div className="text-xl font-bold text-ink leading-none">{seedingCount}</div>
             <div className="text-xs text-gray-500 mt-1">Seeding</div>
           </div>
         </div>
@@ -374,34 +361,35 @@ export default function DownloadsPage() {
             </svg>
           </div>
           <div>
-            <div className="text-sm font-bold text-white leading-none">{formatSpeed(totalSpeedDown)} <span className="text-gray-500 font-medium text-xs">↓</span> {formatSpeed(totalSpeedUp)} <span className="text-gray-500 font-medium text-xs">↑</span></div>
+            <div className="text-sm font-bold text-ink leading-none">{formatSpeed(totalSpeedDown)} <span className="text-gray-500 font-medium text-xs">↓</span> {formatSpeed(totalSpeedUp)} <span className="text-gray-500 font-medium text-xs">↑</span></div>
             <div className="text-xs text-gray-500 mt-1">Aggregate speed</div>
           </div>
         </div>
         <div className="card py-4 px-5 flex items-center gap-3.5">
-          <div className="w-10 h-10 rounded-xl bg-amber-400/12 text-amber-400 flex items-center justify-center">
+          <div className="w-10 h-10 rounded-xl bg-amber-400/12 text-amber-800 flex items-center justify-center">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <rect x="6" y="4" width="4" height="16" />
               <rect x="14" y="4" width="4" height="16" />
             </svg>
           </div>
           <div>
-            <div className="text-xl font-bold text-white leading-none">{pausedCount}</div>
+            <div className="text-xl font-bold text-ink leading-none">{pausedCount}</div>
             <div className="text-xs text-gray-500 mt-1">Paused</div>
           </div>
         </div>
       </div>
 
       <div className="flex items-center justify-between flex-wrap gap-3">
-        <div className="flex items-center gap-1 bg-elevated border border-border rounded-xl p-1">
+        <div className="flex max-w-full flex-wrap items-center gap-1 bg-elevated border border-border rounded-lg p-1">
           {TABS.map(tab => (
             <button
               key={tab.id}
+              aria-pressed={activeTab === tab.id}
               onClick={() => setActiveTab(tab.id)}
               className={`px-4 py-1.5 rounded-lg text-xs font-medium transition-all ${
                 activeTab === tab.id
                   ? 'bg-primary/15 text-primary'
-                  : 'text-gray-400 hover:text-white hover:bg-white/5'
+                  : 'text-gray-400 hover:text-ink hover:bg-surface'
               }`}
             >
               {tab.label}
@@ -410,13 +398,13 @@ export default function DownloadsPage() {
           ))}
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex max-w-full flex-wrap items-center gap-3">
           <div className="flex items-center gap-2">
             <label className="flex items-center gap-2 cursor-pointer group">
               <input
                 type="checkbox"
-                className="w-4 h-4 rounded border-border bg-surface accent-[#e89557] cursor-pointer"
-                checked={filtered.length > 0 && selectedHashes.size === filtered.length}
+                className="w-4 h-4 rounded border-border bg-surface accent-primary cursor-pointer"
+                checked={filtered.length > 0 && filtered.every(torrent => selectedHashes.has(torrent.hash))}
                 onChange={handleSelectAll}
                 disabled={filtered.length === 0}
               />
@@ -438,7 +426,7 @@ export default function DownloadsPage() {
             <option value="speed">Sort: Speed</option>
           </select>
 
-          <div className="relative w-64">
+          <div className="relative w-64 max-w-full">
             <svg className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <circle cx="11" cy="11" r="8" />
               <line x1="21" y1="21" x2="16.65" y2="16.65" />
@@ -447,6 +435,7 @@ export default function DownloadsPage() {
               type="text"
               value={filterQuery}
               onChange={e => setFilterQuery(e.target.value)}
+              aria-label="Filter downloads"
               placeholder="Filter downloads…"
               className="input pl-9 py-2 text-sm"
             />
@@ -456,7 +445,7 @@ export default function DownloadsPage() {
 
       {selectedHashes.size > 0 && (
         <div className="flex items-center justify-between gap-3 rounded-xl border border-primary/30 bg-primary/10 px-4 py-3 animate-fade-in">
-          <div className="text-sm text-white font-medium">
+          <div className="text-sm text-ink font-medium">
             {selectedHashes.size} selected
           </div>
           <div className="flex items-center gap-2">
@@ -466,7 +455,7 @@ export default function DownloadsPage() {
             <button onClick={handleBulkPause} className="btn-secondary text-xs px-3 py-2">
               Pause
             </button>
-            <button onClick={handleBulkRemove} className="btn-secondary text-xs px-3 py-2 text-rose-400/80 hover:text-rose-400 border-rose-400/20">
+            <button onClick={() => handleBulkRemove()} className="btn-secondary text-xs px-3 py-2 text-rose-700/80 hover:text-rose-700 border-rose-400/20">
               Remove
             </button>
             <button onClick={() => setSelectedHashes(new Set())} className="btn-ghost text-xs">
@@ -519,18 +508,17 @@ export default function DownloadsPage() {
       {!loading && torrents.length > 0 && filtered.length === 0 && (
         <div className="card text-center py-12">
           <div className="text-3xl mb-3">🗂</div>
-          <h3 className="text-md font-semibold text-white mb-1">Nothing matches this view</h3>
+          <h3 className="text-md font-semibold text-ink mb-1">Nothing matches this view</h3>
           <p className="text-gray-400 text-sm">Try a different tab or clear the filter.</p>
         </div>
       )}
 
       {!loading && torrents.length === 0 && (
-        <div className="card text-center py-20 border-dashed">
-          <div className="text-5xl mb-4">📥</div>
-          <h3 className="text-lg font-semibold text-white mb-2">No downloads yet</h3>
-          <p className="text-gray-400 text-sm max-w-sm mx-auto">
-            Search for torrents and click Download to get started. Your active downloads will appear here.
-          </p>
+        <div className="card search-empty">
+          <span className="metric-icon"><ArrowDownToLine size={23} /></span>
+          <h2>{connection === 'offline' ? 'Queue unavailable' : 'No downloads yet'}</h2>
+          {connection !== 'offline' && <p>Find a torrent and start it to add it to your queue.</p>}
+          <button className="btn-secondary mt-1" onClick={() => setActivePage('search')}>Find torrents</button>
         </div>
       )}
     </div>

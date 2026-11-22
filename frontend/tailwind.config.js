@@ -8,41 +8,12 @@ export default {
   theme: {
     extend: {
       colors: {
-        primary: {
-          DEFAULT: '#e89557',
-          50: '#E8F5E9',
-          100: '#C8E6C9',
-          200: '#A5D6A7',
-          300: '#81C784',
-          400: '#66BB6A',
-          500: '#e89557',
-          600: '#d47b43',
-          700: '#388E3C',
-          800: '#2E7D32',
-          900: '#1B5E20',
-        },
-        surface: {
-          DEFAULT: '#121113',
-          50: '#f5f5f5',
-          100: '#e8e8ed',
-          200: '#d1d1d9',
-          300: '#b0b0bf',
-          400: '#808099',
-          500: '#5a5a78',
-          600: '#1a1a2e',
-          700: '#12121c',
-          800: '#0d0d16',
-          900: '#08080f',
-        },
-        elevated: {
-          DEFAULT: '#232025',
-          hover: '#2d2930',
-        },
-        border: {
-          DEFAULT: '#35313a',
-          subtle: '#1e1e30',
-          active: '#e89557',
-        },
+        primary: 'rgb(var(--accent) / <alpha-value>)',
+        ink: 'var(--ink)',
+        gray: { 200: '#39354d', 300: '#474259', 400: '#625d75', 500: '#68647b', 600: '#59546e' },
+        surface: '#f7f6fb',
+        elevated: { DEFAULT: '#ffffff', hover: '#f0edf8' },
+        border: { DEFAULT: '#e6e3ef', subtle: '#f0edf7', active: 'rgb(var(--accent) / <alpha-value>)' },
         accent: {
           cyan: '#00D9FF',
           purple: '#A855F7',

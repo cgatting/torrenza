@@ -1,61 +1,50 @@
-import React from 'react';
-import { Toaster } from 'sonner';
+import { CheckCircle2, CircleAlert, Info, X } from 'lucide-react';
 import AppShell from './components/AppShell';
 import DashboardPage from './pages/DashboardPage';
 import SearchPage from './pages/SearchPage';
 import DownloadsPage from './pages/DownloadsPage';
 import SettingsPage from './pages/SettingsPage';
 import useAppStore from './store/useAppStore';
+import './App.css';
+
+const accents = {
+  '#e89557': '158 72 25',
+  '#4CAF50': '34 112 61',
+  '#00D9FF': '4 104 124',
+  '#A855F7': '83 66 184',
+  '#7056d0': '83 66 184',
+  '#F59E0B': '139 86 11',
+};
 
 function ToastContainer() {
-  const { ui } = useAppStore();
-  const { toasts } = ui;
-
+  const { ui, removeToast } = useAppStore();
   return (
-    <div className="fixed bottom-6 right-6 z-50 flex flex-col gap-2">
-      {toasts.map(toast => (
-        <div
-          key={toast.id}
-          className={`animate-bounce-in px-5 py-3 rounded-xl border shadow-card flex items-center gap-3 min-w-[280px] ${
-            toast.type === 'success' ? 'bg-primary/15 border-primary/30 text-primary' :
-            toast.type === 'error' ? 'bg-rose-500/15 border-rose-500/30 text-rose-400' :
-            toast.type === 'info' ? 'bg-accent-cyan/15 border-accent-cyan/30 text-accent-cyan' :
-            'bg-elevated border-border text-white'
-          }`}
-        >
-          <span className="text-sm font-medium flex-1">{toast.message}</span>
-        </div>
-      ))}
+    <div className="toast-stack">
+      {ui.toasts.map(toast => {
+        const Icon = toast.type === 'error' ? CircleAlert : toast.type === 'success' ? CheckCircle2 : Info;
+        return <div className="workspace-toast" key={toast.id} data-tone={toast.type}>
+          <Icon size={18} />
+          <span role={toast.type === 'error' ? 'alert' : 'status'}>{toast.message}</span>
+          <button className="btn-icon" aria-label="Dismiss notification" onClick={() => removeToast(toast.id)}><X size={16} /></button>
+        </div>;
+      })}
     </div>
   );
 }
 
 export default function App() {
-  const { ui } = useAppStore();
-  const { activePage } = ui;
-
-  const renderPage = () => {
-    switch (activePage) {
-      case 'dashboard': return <DashboardPage />;
-      case 'search': return <SearchPage />;
-      case 'downloads': return <DownloadsPage />;
-      case 'settings': return <SettingsPage />;
-      default: return <SearchPage />;
-    }
-  };
+  const page = useAppStore(state => state.ui.activePage);
+  const accent = useAppStore(state => state.settings.accentColor);
 
   return (
-    <>
-      <AppShell>{renderPage()}</AppShell>
+    <div style={accents[accent] ? { '--accent': accents[accent] } : undefined}>
+      <AppShell>
+        {page === 'dashboard' && <DashboardPage />}
+        {page === 'downloads' && <DownloadsPage />}
+        {page === 'settings' && <SettingsPage />}
+        <div hidden={page !== 'search'}><SearchPage /></div>
+      </AppShell>
       <ToastContainer />
-      <Toaster
-        position="bottom-right"
-        expand={false}
-        richColors
-        toastOptions={{
-          style: { display: 'none' },
-        }}
-      />
-    </>
+    </div>
   );
 }

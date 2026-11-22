@@ -1,14 +1,16 @@
-import React, { useState, useCallback, useRef, useEffect } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
+import { Grid2X2, Film, Music2, Image, Monitor, FileText, Search as SearchIcon } from 'lucide-react';
+import PageHeader from '../components/PageHeader';
 import useAppStore from '../store/useAppStore';
 import { searchTorrents, startDownload, previewMagnet, openMagnet, isHosted } from '../api/client';
 
 const CATEGORIES = [
-  { id: 'all', label: 'All', icon: '◈' },
-  { id: 'video', label: 'Movies', icon: '🎬' },
-  { id: 'audio', label: 'Music', icon: '🎵' },
-  { id: 'image', label: 'Images', icon: '🖼️' },
-  { id: 'software', label: 'Software', icon: '💻' },
-  { id: 'document', label: 'Documents', icon: '📄' },
+  { id: 'all', label: 'All', icon: Grid2X2 },
+  { id: 'video', label: 'Movies', icon: Film },
+  { id: 'audio', label: 'Music', icon: Music2 },
+  { id: 'image', label: 'Images', icon: Image },
+  { id: 'software', label: 'Software', icon: Monitor },
+  { id: 'document', label: 'Documents', icon: FileText },
 ];
 
 const SORT_OPTIONS = [
@@ -78,7 +80,7 @@ function TypeIcon({ name }) {
     );
   }
   return (
-    <div className={`${base} bg-accent-cyan/12 text-accent-cyan`}>
+    <div className={`${base} bg-accent-cyan/12 text-sky-700`}>
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
         <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
         <polyline points="14,2 14,8 20,8" />
@@ -98,7 +100,7 @@ function ResultCard({ result, onDownload, isDownloading, onCopyMagnet }) {
         <TypeIcon name={result.name} />
 
         <div className="flex-1 min-w-0">
-          <div className="flex items-start justify-between gap-4">
+          <div className="result-summary flex items-start justify-between gap-4">
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-2 mb-1.5 flex-wrap">
                 <span className="badge-gray text-[10px] uppercase tracking-wide">{result.engine}</span>
@@ -106,12 +108,10 @@ function ResultCard({ result, onDownload, isDownloading, onCopyMagnet }) {
                 {codecMatch && <span className="badge-gray text-[10px] uppercase">{codecMatch[1]}</span>}
               </div>
 
-              <h3
-                className="text-white font-semibold text-sm mb-1.5 leading-snug cursor-pointer hover:text-primary transition-colors"
-                onClick={() => setExpanded(!expanded)}
-                title={result.name}
-              >
-                {result.name}
+              <h3 className="text-sm font-bold leading-snug mb-1.5 break-words">
+                <button className="text-left hover:text-primary" aria-expanded={expanded} onClick={() => setExpanded(!expanded)}>
+                  {result.name}
+                </button>
               </h3>
 
               <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-gray-400">
@@ -168,7 +168,7 @@ function ResultCard({ result, onDownload, isDownloading, onCopyMagnet }) {
                 </button>
                 <button
                   onClick={() => setExpanded(!expanded)}
-                  className="text-xs text-gray-500 hover:text-white transition-colors px-1"
+                  className="text-xs text-gray-500 hover:text-ink transition-colors px-1"
                 >
                   {expanded ? 'Less' : 'More'}
                 </button>
@@ -193,7 +193,7 @@ function ResultCard({ result, onDownload, isDownloading, onCopyMagnet }) {
 function MagnetPreviewCard({ preview, onDownload, downloading }) {
   return (
     <div className="mt-4 rounded-xl border border-primary/25 bg-primary/[0.04] p-4 animate-fade-in">
-      <div className="flex items-start justify-between gap-4">
+      <div className="result-summary flex items-start justify-between gap-4">
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-1.5">
             <span className="badge-green text-[10px]">MAGNET COMPILED</span>
@@ -201,7 +201,7 @@ function MagnetPreviewCard({ preview, onDownload, downloading }) {
               <span className="badge-gray text-[10px]">✓ Metadata fetched</span>
             )}
           </div>
-          <h4 className="text-white font-semibold text-sm mb-1.5 break-words">
+          <h4 className="text-ink font-semibold text-sm mb-1.5 break-words">
             {preview.parsed?.name || 'Unnamed torrent'}
           </h4>
           {preview.parsed?.hash && (
@@ -222,7 +222,7 @@ function MagnetPreviewCard({ preview, onDownload, downloading }) {
             </div>
           )}
           {preview.meta?.status && preview.meta.status !== 'ok' && (
-            <p className="text-xs text-amber-300/90 mt-1.5">
+            <p className="text-xs text-amber-800/90 mt-1.5">
               {preview.meta.message || 'Metadata not available yet — you can still start the download.'}
             </p>
           )}
@@ -284,6 +284,8 @@ export default function SearchPage() {
     sourceResultCounts: [],
   });
   const [loading, setLoading] = useState(false);
+  const [searchError, setSearchError] = useState(false);
+  const searchRequest = useRef(0);
   const [activeSearch, setActiveSearch] = useState('');
   const [searched, setSearched] = useState(false);
   const [category, setCategory] = useState('all');
@@ -323,21 +325,14 @@ export default function SearchPage() {
     });
   };
 
-  useEffect(() => {
-    const handler = (e) => {
-      if (e.key === '/' && !['INPUT', 'TEXTAREA'].includes(document.activeElement?.tagName)) {
-        e.preventDefault();
-        searchInputRef.current?.focus();
-      }
-    };
-    window.addEventListener('keydown', handler);
-    return () => window.removeEventListener('keydown', handler);
-  }, []);
 
   const handleSearch = useCallback(async (e, overrideQuery) => {
     e?.preventDefault();
     const term = (overrideQuery ?? query).trim();
+    const request = ++searchRequest.current;
+    setSearchError(false);
     if (!term) {
+      setLoading(false);
       setResults([]);
       setSearched(false);
       setSearchMeta({ sourcesSearched: [], sourcesFailed: [], sourceResultCounts: [] });
@@ -352,6 +347,7 @@ export default function SearchPage() {
 
     try {
       const res = await searchTorrents({ query: term, fileType: category, sortBy, sortDir: 'desc' });
+      if (request !== searchRequest.current) return;
       let data = res.data?.results || [];
       const sourcesSearched = Array.isArray(res.data?.sourcesSearched) ? res.data.sourcesSearched : [];
       const sourcesFailed = Array.isArray(res.data?.sourcesFailed) ? res.data.sourcesFailed : [];
@@ -377,11 +373,11 @@ export default function SearchPage() {
       setResults(data);
       setSearchMeta({ sourcesSearched, sourcesFailed, sourceResultCounts });
     } catch {
-      addToast({ type: 'error', message: 'Search failed. Please try again.' });
+      if (request === searchRequest.current) setSearchError(true);
     } finally {
-      setLoading(false);
+      if (request === searchRequest.current) setLoading(false);
     }
-  }, [query, category, sortBy, selectedSources, minSeeders, addToast]);
+  }, [query, category, sortBy, selectedSources, minSeeders]);
 
   useEffect(() => {
     const pending = ui.pendingSearch;
@@ -502,29 +498,25 @@ export default function SearchPage() {
       {checkingTorrent && <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4" role="status" aria-live="polite">
         <div className="card w-full max-w-sm border-primary/30 text-center py-8 px-6">
           <div className="metadata-scan-art mx-auto mb-5" aria-hidden="true"><div className="metadata-scan-ring"/><div className="metadata-scan-line"/><span className="metadata-scan-point point-a"/><span className="metadata-scan-point point-b"/><span className="metadata-scan-shield">⌕</span></div>
-          <div className="section-label text-primary">PRE-HANDOFF CHECK</div><h2 className="mt-2 text-lg font-semibold text-white">Inspecting torrent metadata</h2><p className="mt-2 text-sm text-gray-400">Checking the file list for executable and script filenames…</p><p className="mt-4 text-[11px] text-gray-500">This checks names only; it does not scan file contents.</p>
+           <h2 className="mt-2 text-lg font-semibold text-ink">Inspecting torrent metadata</h2><p className="mt-2 text-sm text-gray-400">Checking the file list for executable and script filenames…</p><p className="mt-4 text-[11px] text-gray-500">This checks names only; it does not scan file contents.</p>
         </div>
       </div>}
       {pendingHandoff && <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-4" role="dialog" aria-modal="true" aria-labelledby="torrent-check-title">
         <div className="card w-full max-w-xl border-amber-500/30 shadow-2xl">
-          <div className="flex items-start gap-3"><span className="text-2xl">{pendingHandoff.findings.length ? '⚠️' : '🛡️'}</span><div className="min-w-0"><h2 id="torrent-check-title" className="text-lg font-semibold text-white">Torrent metadata check</h2><p className="mt-1 text-sm text-gray-300 break-words">{pendingHandoff.name}</p></div></div>
+          <div className="flex items-start gap-3"><span className="text-2xl">{pendingHandoff.findings.length ? '⚠️' : '🛡️'}</span><div className="min-w-0"><h2 id="torrent-check-title" className="text-lg font-semibold text-ink">Torrent metadata check</h2><p className="mt-1 text-sm text-gray-300 break-words">{pendingHandoff.name}</p></div></div>
           <p className="mt-4 text-sm text-gray-400">This check inspects filenames and torrent metadata only. It does not scan the files’ contents or certify that they are safe.</p>
-          {!pendingHandoff.inspected && <p className="mt-3 rounded-lg bg-amber-500/10 p-3 text-sm text-amber-200">Torrenza could not retrieve the torrent metadata, so it could not inspect the file list.</p>}
-          {pendingHandoff.findings.length > 0 && <div className="mt-3 rounded-lg bg-rose-500/10 p-3"><p className="text-sm font-medium text-rose-200">Potentially risky filenames found:</p><ul className="mt-2 max-h-36 overflow-auto list-disc pl-5 text-xs text-rose-100">{pendingHandoff.findings.slice(0, 12).map((file, i) => <li key={`${file}-${i}`} className="break-all">{file}</li>)}</ul></div>}
-          {pendingHandoff.inspected && pendingHandoff.findings.length === 0 && <p className="mt-3 text-sm text-emerald-300">No executable or script filenames were found in the metadata. This is not an antivirus scan.</p>}
+          {!pendingHandoff.inspected && <p className="mt-3 rounded-lg bg-amber-500/10 p-3 text-sm text-amber-900">Torrenza could not retrieve the torrent metadata, so it could not inspect the file list.</p>}
+          {pendingHandoff.findings.length > 0 && <div className="mt-3 rounded-lg bg-rose-500/10 p-3"><p className="text-sm font-medium text-rose-900">Potentially risky filenames found:</p><ul className="mt-2 max-h-36 overflow-auto list-disc pl-5 text-xs text-rose-900">{pendingHandoff.findings.slice(0, 12).map((file, i) => <li key={`${file}-${i}`} className="break-all">{file}</li>)}</ul></div>}
+          {pendingHandoff.inspected && pendingHandoff.findings.length === 0 && <p className="mt-3 text-sm text-emerald-700">No executable or script filenames were found in the metadata. This is not an antivirus scan.</p>}
           <div className="mt-5 flex justify-end gap-2"><button className="btn-secondary" onClick={() => setPendingHandoff(null)}>Cancel</button><button className="btn-primary" onClick={() => continueToTorrentApp(pendingHandoff.magnet, pendingHandoff.name)}>Continue to torrent app ↗</button></div>
         </div>
       </div>}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight text-white">Search Torrents</h1>
-          <p className="text-gray-400 text-sm mt-1">Find content across multiple sources in one place</p>
-        </div>
-        <div className="flex items-center gap-2">
+      <PageHeader title="Search torrents" description="Find torrents across your enabled sources.">
           {results.length > 0 && (
             <span className="badge-gray">{results.length} results</span>
           )}
           <button
+            aria-expanded={magnetOpen}
             onClick={() => setMagnetOpen(!magnetOpen)}
             className={`btn-secondary text-sm ${magnetOpen ? 'border-primary/40 text-primary' : ''}`}
           >
@@ -534,21 +526,20 @@ export default function SearchPage() {
             </svg>
             Add Magnet
           </button>
-        </div>
-      </div>
+      </PageHeader>
 
       {magnetOpen && (
-        <div className="card animate-fade-in">
+        <div id="magnet-panel" className="card animate-fade-in">
           <div className="flex items-center gap-2 mb-1">
-            <span className="text-sm font-semibold text-white">Paste a Magnet Link</span>
-            <span className="badge-gray text-[10px]">ADD BY LINK</span>
-          </div>
+            <span className="text-sm font-semibold text-ink">Paste a Magnet Link</span>
+           </div>
           <p className="text-xs text-gray-500 mb-3">
             Copy any magnet link and we'll compile a preview before downloading.
           </p>
           <div className="flex gap-2">
             <input
               type="text"
+              aria-label="Magnet link"
               value={magnetInput}
               onChange={e => setMagnetInput(e.target.value)}
               onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); handleMagnetPreview(); } }}
@@ -576,7 +567,7 @@ export default function SearchPage() {
             </button>
           </div>
 
-          {previewError && <p className="text-xs text-rose-400 mt-3">{previewError}</p>}
+          {previewError && <p className="text-xs text-rose-700 mt-3">{previewError}</p>}
 
           {magnetPreview && (
             <MagnetPreviewCard
@@ -589,7 +580,7 @@ export default function SearchPage() {
       )}
 
       <div className="card">
-        <form onSubmit={handleSearch} className="space-y-4">
+        <form role="search" aria-label="Torrent search" onSubmit={handleSearch} className="space-y-4">
           <div className="relative">
             <svg
               className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500"
@@ -600,18 +591,19 @@ export default function SearchPage() {
             </svg>
             <input
               ref={searchInputRef}
+              aria-label="Search torrents"
               type="text"
               value={query}
               onChange={e => setQuery(e.target.value)}
               placeholder="Search movies, shows, software, games…"
-              className="input pl-12 pr-36 py-4 text-base"
+              className="input pl-12 pr-28 sm:pr-36 py-4 text-base"
             />
             <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-2">
               {query && (
                 <button
                   type="button"
                   onClick={() => { setQuery(''); searchInputRef.current?.focus(); }}
-                  className="text-gray-500 hover:text-white p-1 rounded-md transition-colors"
+                  className="text-gray-500 hover:text-ink p-1 rounded-md transition-colors"
                   aria-label="Clear search"
                 >
                   <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -621,7 +613,7 @@ export default function SearchPage() {
                 </button>
               )}
               <span className="kbd hidden sm:inline-flex">↵</span>
-              <button type="submit" className="btn-primary px-5">
+              <button type="submit" disabled={loading || !query.trim()} className="btn-primary px-3 sm:px-5">
                 Search
               </button>
             </div>
@@ -632,10 +624,12 @@ export default function SearchPage() {
               {CATEGORIES.map(cat => (
                 <button
                   key={cat.id}
+                  type="button"
+                  aria-pressed={category === cat.id}
                   onClick={() => setCategory(cat.id)}
                   className={category === cat.id ? 'chip chip-active' : 'chip chip-idle'}
                 >
-                  {cat.icon} {cat.label}
+                  <cat.icon size={14} /> {cat.label}
                 </button>
               ))}
             </div>
@@ -696,7 +690,7 @@ export default function SearchPage() {
           ))}
           <button
             onClick={() => { setRecentSearches([]); localStorage.removeItem('torrenza:recentSearches'); }}
-            className="text-xs text-gray-500 hover:text-rose-400 transition-colors ml-1"
+            className="text-xs text-gray-500 hover:text-rose-700 transition-colors ml-1"
           >
             Clear all
           </button>
@@ -717,11 +711,11 @@ export default function SearchPage() {
                 onClick={() => toggleSourceFilter(source)}
                 className={
                   selected
-                    ? 'chip bg-white/10 border-white/25 text-white'
+                    ? 'chip bg-primary/10 border-border text-ink'
                     : resultCount > 0
-                      ? 'chip bg-emerald-500/10 border-emerald-500/30 text-emerald-300 hover:border-emerald-500/50'
+                      ? 'chip bg-emerald-500/10 border-emerald-500/30 text-emerald-700 hover:border-emerald-500/50'
                       : failed
-                        ? 'chip bg-rose-500/10 border-rose-500/30 text-rose-300 hover:border-rose-500/50'
+                        ? 'chip bg-rose-500/10 border-rose-500/30 text-rose-700 hover:border-rose-500/50'
                         : 'chip chip-idle'
                 }
               >
@@ -733,7 +727,7 @@ export default function SearchPage() {
           {selectedSources.length > 0 && (
             <button
               onClick={() => setSelectedSources([])}
-              className="text-xs text-gray-400 hover:text-white transition-colors ml-1"
+              className="text-xs text-gray-400 hover:text-ink transition-colors ml-1"
             >
               Clear filters
             </button>
@@ -763,26 +757,31 @@ export default function SearchPage() {
       {!loading && searched && results.length === 0 && (
         <div className="card text-center py-16">
           <div className="text-4xl mb-4">🔍</div>
-          <h3 className="text-lg font-semibold text-white mb-2">No results found</h3>
+          <h3 className="text-lg font-semibold text-ink mb-2">{searchError ? 'Search unavailable' : 'No results found'}</h3>
           <p className="text-gray-400 text-sm max-w-sm mx-auto">
-            Try different keywords, check your spelling, or clear the source filters.
+            {searchError ? 'Torrenza could not complete the search. Try again in a moment.' : 'Try different keywords or adjust the filters.'}
           </p>
           <button
-            onClick={() => { setQuery(''); setResults([]); setSearched(false); searchInputRef.current?.focus(); }}
+            onClick={() => {
+              if (searchError) handleSearch(null, activeSearch);
+              else {
+                setQuery('');
+                handleSearch(null, '');
+                searchInputRef.current?.focus();
+              }
+            }}
             className="btn-secondary mt-4"
           >
-            Clear Search
+            {searchError ? 'Try again' : 'Clear search'}
           </button>
         </div>
       )}
 
       {!loading && !searched && (
-        <div className="card text-center py-20 border-dashed">
-          <div className="text-4xl mb-4">⚡</div>
-          <h3 className="text-lg font-semibold text-white mb-2">Search millions of torrents</h3>
-          <p className="text-gray-400 text-sm max-w-md mx-auto">
-            Enter a search term above to find torrents from multiple sources including 1337x, Nyaa, and more.
-          </p>
+        <div className="card search-empty">
+          <span className="metric-icon"><SearchIcon size={23} /></span>
+          <h2>Find your next download</h2>
+          <p>Search by name or add a magnet link if you already have one.</p>
         </div>
       )}
     </div>

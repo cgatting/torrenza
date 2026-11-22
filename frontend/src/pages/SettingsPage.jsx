@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
+import PageHeader from '../components/PageHeader';
 import useAppStore from '../store/useAppStore';
 import { getSettings, saveSettings, getProviders, testProviders, isHosted } from '../api/client';
 
@@ -59,7 +60,7 @@ function Toggle({ checked, onChange, label, description }) {
   return (
     <label className="flex items-center justify-between gap-4 cursor-pointer group py-3">
       <div>
-        <div className="text-sm text-gray-200 group-hover:text-white transition-colors">{label}</div>
+        <div className="text-sm text-gray-200 group-hover:text-ink transition-colors">{label}</div>
         {description && <div className="text-xs text-gray-500 mt-0.5">{description}</div>}
       </div>
       <div className="relative flex-shrink-0">
@@ -74,7 +75,7 @@ function Toggle({ checked, onChange, label, description }) {
 function Field({ label, description, children }) {
   return (
     <div>
-      <h3 className="text-sm font-semibold text-white mb-1">{label}</h3>
+      <h3 className="text-sm font-semibold text-ink mb-1">{label}</h3>
       {description && <p className="text-xs text-gray-500 mb-3">{description}</p>}
       {children}
     </div>
@@ -215,7 +216,7 @@ function ProviderLogo({ name, color }) {
   const letter = (name || '?').charAt(0).toUpperCase();
   return (
     <div
-      className="w-10 h-10 rounded-xl flex items-center justify-center font-bold text-white text-sm flex-shrink-0 shadow-md"
+      className="w-10 h-10 rounded-xl flex items-center justify-center font-bold text-ink text-sm flex-shrink-0 shadow-md"
       style={{ backgroundColor: color || '#e89557' }}
     >
       {letter}
@@ -329,7 +330,7 @@ function SectionProviders({ settings, updateSetting, addToast }) {
     <div className="space-y-5">
       <div className="flex items-center justify-between">
         <div>
-          <h3 className="text-sm font-semibold text-white mb-1">Torrent Sources</h3>
+          <h3 className="text-sm font-semibold text-ink mb-1">Torrent Sources</h3>
           <p className="text-xs text-gray-500">Test each source and toggle what Search uses</p>
         </div>
         <button
@@ -378,7 +379,7 @@ function SectionProviders({ settings, updateSetting, addToast }) {
 
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <span className="text-sm font-semibold text-white">{provider.label}</span>
+                    <span className="text-sm font-semibold text-ink">{provider.label}</span>
                     <span className="badge-gray text-[10px] uppercase tracking-wide">{provider.type}</span>
                     {status && (
                       <ProviderStatusBadge
@@ -390,7 +391,7 @@ function SectionProviders({ settings, updateSetting, addToast }) {
                   </div>
                   <p className="text-xs text-gray-500 mt-1.5 leading-relaxed">{provider.description}</p>
                   {status?.status === 'offline' && status.error && (
-                    <p className="text-[11px] text-rose-400/80 mt-1 truncate" title={status.error}>
+                    <p className="text-[11px] text-rose-700/80 mt-1 truncate" title={status.error}>
                       {status.error}
                     </p>
                   )}
@@ -454,11 +455,7 @@ export default function SettingsPage() {
 
   return (
     <div className="animate-fade-in">
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight text-white">Settings</h1>
-          <p className="text-gray-400 text-sm mt-1">Configure Torrenza to your preferences</p>
-        </div>
+      <PageHeader title="Settings" description="Manage connection, downloads, appearance, and sources.">
         <button
           onClick={handleSave}
           disabled={saving}
@@ -480,19 +477,19 @@ export default function SettingsPage() {
             </>
           )}
         </button>
-      </div>
+      </PageHeader>
 
-      <div className="flex flex-col md:flex-row gap-6">
-        <div className="md:w-64 flex-shrink-0">
-          <div className="card p-2 space-y-1">
+      <div className="settings-layout mt-6">
+        <div className="settings-nav card p-2" aria-label="Settings sections" role="group">
             {SECTIONS.map(section => (
               <button
                 key={section.id}
+                aria-pressed={activeSection === section.id}
                 onClick={() => setActiveSection(section.id)}
                 className={`w-full flex items-center gap-3 px-3.5 py-3 rounded-xl text-sm font-medium transition-all ${
                   activeSection === section.id
                     ? 'bg-primary/10 text-primary'
-                    : 'text-gray-400 hover:text-white hover:bg-white/5'
+                    : 'text-gray-400 hover:text-ink hover:bg-surface'
                 }`}
               >
                 <span className={`flex-shrink-0 ${activeSection === section.id ? 'text-primary' : ''}`}>
@@ -501,13 +498,12 @@ export default function SettingsPage() {
                 <span>{section.label}</span>
               </button>
             ))}
-          </div>
         </div>
 
-        <div className="flex-1 min-w-0">
+        <div className="min-w-0">
           <div className="card">
             <div className="mb-6">
-              <h2 className="text-lg font-semibold text-white flex items-center gap-2.5">
+              <h2 className="text-lg font-semibold text-ink flex items-center gap-2.5">
                 <span className="text-primary">{current.icon}</span>
                 {current.label}
               </h2>

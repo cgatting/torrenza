@@ -1,110 +1,80 @@
-import React, { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { ChevronRight, Search } from 'lucide-react';
 import Sidebar from './Sidebar';
 import useAppStore from '../store/useAppStore';
+import { getDownloads, isHosted } from '../api/client';
 
-const PAGE_TITLES = {
-  dashboard: { title: 'Dashboard', section: 'Overview' },
-  search: { title: 'Search', section: 'Library' },
-  downloads: { title: 'Downloads', section: 'Library' },
-  settings: { title: 'Settings', section: 'System' },
-};
+const titles = { dashboard: 'Overview', search: 'Search', downloads: 'Downloads', settings: 'Settings' };
 
 export default function AppShell({ children }) {
-  const { ui, setActivePage, setPendingSearch } = useAppStore();
-  const { sidebarCollapsed, activePage } = ui;
-  const searchRef = useRef(null);
-  const [quickQuery, setQuickQuery] = React.useState('');
-  const page = PAGE_TITLES[activePage] || PAGE_TITLES.search;
+  const { ui, setActivePage, setPendingSearch, recordDownloads, setConnection } = useAppStore();
+  const search = useRef(null);
+  const main = useRef(null);
+  const [query, setQuery] = useState('');
 
   useEffect(() => {
-    const handler = (e) => {
-      if (e.key === '/' && !['INPUT', 'TEXTAREA'].includes(document.activeElement?.tagName)) {
-        e.preventDefault();
-        setActivePage('search');
-        setTimeout(() => searchRef.current?.focus(), 60);
-      }
-    };
-    window.addEventListener('keydown', handler);
-    return () => window.removeEventListener('keydown', handler);
-  }, [setActivePage]);
+    if (isHosted) {
+      setConnection('hosted');
+      return;
+    }
+    const controller = new AbortController();
+    let timer;
 
-  const runQuickSearch = (e) => {
-    e.preventDefault();
-    const query = quickQuery.trim();
-    if (!query) return;
-    setPendingSearch(query);
-    setQuickQuery('');
+    async function poll() {
+      try {
+        const { data } = await getDownloads(controller.signal);
+        if (!controller.signal.aborted) recordDownloads(data.downloads || []);
+      } catch {
+        if (!controller.signal.aborted) setConnection('offline');
+      } finally {
+        if (!controller.signal.aborted) timer = setTimeout(poll, 2000);
+      }
+    }
+
+    poll();
+    return () => {
+      controller.abort();
+      clearTimeout(timer);
+    };
+  }, [recordDownloads, setConnection]);
+
+  useEffect(() => {
+    function focusSearch(event) {
+      if (event.key !== '/' || event.ctrlKey || event.metaKey || event.altKey ||
+          event.target.closest?.('input, textarea, select, [contenteditable]')) return;
+      event.preventDefault();
+      search.current?.focus();
+    }
+    window.addEventListener('keydown', focusSearch);
+    return () => window.removeEventListener('keydown', focusSearch);
+  }, []);
+
+  useEffect(() => { main.current?.scrollTo(0, 0); }, [ui.activePage]);
+
+  function runSearch(event) {
+    event.preventDefault();
+    if (!query.trim()) return;
+    setPendingSearch(query.trim());
     setActivePage('search');
-  };
+    setQuery('');
+  }
 
   return (
-    <div className="flex h-screen overflow-hidden bg-surface">
+    <div className="workspace">
+      <a className="skip-link" href="#workspace-content">Skip to content</a>
       <Sidebar />
-
-      <div
-        className="flex-1 flex flex-col min-w-0 transition-all duration-300"
-        style={{ marginLeft: sidebarCollapsed ? '72px' : '264px' }}
-      >
-        <header className="h-[76px] bg-elevated/60 backdrop-blur-xl border-b border-border flex items-center justify-between px-8 gap-6 flex-shrink-0">
-          <div className="flex items-center gap-2 text-sm min-w-0">
-            <span className="text-gray-500">{page.section}</span>
-            <svg className="text-gray-600 flex-shrink-0" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <polyline points="9,18 15,12 9,6" />
-            </svg>
-            <span className="text-white font-semibold truncate">{page.title}</span>
-          </div>
-
-          <div className="flex items-center gap-4">
-            <form
-              onSubmit={runQuickSearch}
-              className="hidden md:flex items-center gap-2 w-72 bg-surface/80 border border-border rounded-xl px-3.5 py-2 text-sm text-gray-500 hover:border-border-active/50 transition-colors group"
-            >
-              <svg className="flex-shrink-0" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <circle cx="11" cy="11" r="8" />
-                <line x1="21" y1="21" x2="16.65" y2="16.65" />
-              </svg>
-              <input
-                ref={searchRef}
-                type="text"
-                value={quickQuery}
-                onChange={e => setQuickQuery(e.target.value)}
-                onFocus={() => setActivePage('search')}
-                placeholder="Quick search torrents…"
-                className="flex-1 min-w-0 bg-transparent outline-none placeholder-gray-500 text-gray-200"
-              />
-              <span className="kbd group-hover:border-border-active/40">/</span>
-            </form>
-
-            <div className="h-6 w-px bg-border hidden sm:block" />
-
-            <div className="flex items-center gap-2.5">
-              <div className="flex items-center gap-2">
-                <div className="relative flex h-2 w-2">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-50" />
-                  <span className="relative inline-flex rounded-full h-2 w-2 bg-primary" />
-                </div>
-                <span className="hidden sm:inline text-[11px] text-gray-400 font-semibold tracking-wider">NODE ONLINE</span>
-              </div>
-
-              <div className="h-6 w-px bg-border hidden sm:block" />
-
-              <div className="flex items-center gap-2.5 pl-1">
-                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#f2ae6d] to-[#d96b68] flex items-center justify-center text-xs font-bold text-white shadow-md shadow-orange-950/30">
-                  TZ
-                </div>
-                <div className="hidden lg:block leading-tight">
-                  <div className="text-xs font-semibold text-white">Local Node</div>
-                  <div className="text-[10px] text-gray-500">127.0.0.1:5000</div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </header>
-
-        <main className="flex-1 overflow-y-auto p-6 lg:p-8 max-w-[1400px] w-full mx-auto">
-          {children}
-        </main>
-      </div>
+      <header className="workspace-header">
+        <div className="workspace-breadcrumb"><span>Workspace</span><ChevronRight size={14} /> <strong>{titles[ui.activePage]}</strong></div>
+        <form className="workspace-search" role="search" onSubmit={runSearch}>
+          <Search size={16} />
+          <input ref={search} value={query} onChange={event => setQuery(event.target.value)}
+            aria-label="Quick search torrents" placeholder="Quick search" />
+          <kbd>/</kbd>
+        </form>
+      </header>
+      <main id="workspace-content" ref={main} className="workspace-main" tabIndex={-1}>
+        <div className="workspace-content">{children}</div>
+      </main>
     </div>
   );
 }

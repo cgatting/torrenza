@@ -2,6 +2,23 @@ import { create } from 'zustand';
 
 const useAppStore = create((set, get) => ({
   torrents: [],
+  connection: 'connecting',
+  samples: [],
+
+  setConnection: (connection) => set({ connection }),
+  recordDownloads: (downloads) => set((state) => {
+    const previous = new Map(state.torrents.map(torrent => [torrent.hash, torrent._addedAt]));
+    const now = Date.now();
+    const torrents = downloads.map(torrent => ({
+      ...torrent,
+      _addedAt: previous.get(torrent.hash) ?? now,
+    }));
+    const sample = torrents.reduce((total, torrent) => ({
+      down: total.down + (torrent.downloadSpeed || 0),
+      up: total.up + (torrent.uploadSpeed || 0),
+    }), { down: 0, up: 0 });
+    return { connection: 'online', torrents, samples: [...state.samples.slice(-23), sample] };
+  }),
   settings: {
     downloadPath: 'C:/Downloads',
     maxSpeed: 0,

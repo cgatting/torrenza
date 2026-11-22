@@ -11,7 +11,7 @@ const client = axios.create({
 client.interceptors.response.use(
   (response) => response,
   (error) => {
-    console.error('API Error:', error?.response?.data || error.message);
+    if (!axios.isCancel(error)) console.error('API Error:', error?.response?.data || error.message);
     return Promise.reject(error);
   }
 );
@@ -19,8 +19,8 @@ client.interceptors.response.use(
 export const searchTorrents = (params) =>
   client.get('/torrents/search', { params, timeout: SEARCH_TIMEOUT_MS });
 
-export const getDownloads = () =>
-  client.get('/downloads');
+export const getDownloads = (signal) =>
+  client.get('/downloads', { signal });
 
 export const startDownload = (data) =>
   client.post('/downloads/start', data);
