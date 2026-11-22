@@ -80,10 +80,10 @@ function normalizeSettings(settings) {
   return {
     ...DEFAULT_SETTINGS,
     ...settings,
-    enabledSources: settings && settings.sourceDefaultsVersion === 1
+    enabledSources: settings && settings.sourceDefaultsVersion === 2
       ? normalizeSources(settings.enabledSources)
       : [...AVAILABLE_SOURCE_IDS],
-    sourceDefaultsVersion: 1,
+    sourceDefaultsVersion: 2,
     availableSources: AVAILABLE_SOURCES,
   };
 }

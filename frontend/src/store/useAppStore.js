@@ -11,7 +11,7 @@ const useAppStore = create((set, get) => ({
     listenPort: 6881,
     sslVerification: true,
     copyrightFilter: true,
-    enabledSources: ['Bitsearch', 'YourBittorrent', 'TorrentFunk', 'The Pirate Bay', 'YTS', '1337x', 'Nyaa', 'LimeTorrents'],
+    enabledSources: ['TSP:knaben', 'TSP:dmhy', 'TSP:rutor', 'TSP:torrentkitty', 'TSP:torrentscsv', 'TSP:torrentdownloads', 'TSP:1tamilmv-tamil', 'TSP:1tamilmv-hindi', 'TSP:1tamilmv-telugu', 'TSP:1tamilmv-malayalam', 'TSP:sukebei', 'TSP:nyaa', 'TSP:piratebay', 'TSP:yts', 'TSP:bitsearch', 'Bitsearch', 'YourBittorrent', 'TorrentFunk', 'The Pirate Bay', 'YTS', '1337x', 'Nyaa', 'LimeTorrents'],
   },
   ui: {
     sidebarCollapsed: false,
