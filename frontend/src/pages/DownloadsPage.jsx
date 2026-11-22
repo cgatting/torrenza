@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import useAppStore from '../store/useAppStore';
-import { getDownloads, stopDownload, startDownloadByHash, removeDownload, openDownloadInExplorer } from '../api/client';
+import { getDownloads, stopDownload, startDownloadByHash, removeDownload, openDownloadInExplorer, isHosted } from '../api/client';
 
 function formatBytes(bytes) {
   if (!bytes) return '0 B';
@@ -306,6 +306,8 @@ export default function DownloadsPage() {
     addToast({ type: 'info', message: `Removed ${targets.length} download(s)` });
     setSelectedHashes(new Set());
   }, [torrents, selectedHashes, removeTorrent, addToast]);
+
+  if (isHosted) return <div className="space-y-6 animate-fade-in"><h1 className="text-2xl font-bold text-white">Downloads</h1><div className="card py-16 text-center"><div className="text-4xl mb-4">↗</div><h2 className="text-lg font-semibold text-white mb-2">Downloads run on your device</h2><p className="text-gray-400 text-sm max-w-lg mx-auto">Choose a result on the Search page to open its magnet link in a torrent app installed on your device. Torrenza does not store your downloads or show their progress here.</p></div></div>;
 
   return (
     <div className="space-y-6 animate-fade-in">

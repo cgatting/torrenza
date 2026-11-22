@@ -1,6 +1,6 @@
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import useAppStore from '../store/useAppStore';
-import { searchTorrents, startDownload, previewMagnet } from '../api/client';
+import { searchTorrents, startDownload, previewMagnet, openMagnet, isHosted } from '../api/client';
 
 const CATEGORIES = [
   { id: 'all', label: 'All', icon: '◈' },
@@ -408,15 +408,13 @@ export default function SearchPage() {
     setDownloadingHashes(prev => new Set([...prev, result.hash]));
 
     try {
-      await startDownload({
-        magnetLink: result.magnetLink,
-        name: result.name,
-        size: result.size,
-        destination: settings.downloadPath || 'C:/Downloads',
-      });
-      addToast({ type: 'success', message: `Download started: ${result.name.slice(0, 50)}` });
-    } catch (err) {
-      addToast({ type: 'error', message: `Failed to start download: ${err.message}` });
+      if (isHosted) {
+        openMagnet(result.magnetLink);
+        addToast({ type: 'success', message: 'Opening your torrent app on this device' });
+      } else {
+        await startDownload({ magnetLink: result.magnetLink, name: result.name, size: result.size, destination: settings.downloadPath || 'C:/Downloads' });
+        addToast({ type: 'success', message: `Download started: ${result.name.slice(0, 50)}` });
+      }
     } finally {
       setDownloadingHashes(prev => {
         const next = new Set(prev);
@@ -461,7 +459,8 @@ export default function SearchPage() {
     const name = magnetPreview?.parsed?.name || 'Download from magnet link';
     setMagnetDownloading(true);
     try {
-      await startDownload({ magnetLink: magnet, name, size: '', destination: settings.downloadPath || 'C:/Downloads' });
+      if (isHosted) openMagnet(magnet);
+      else await startDownload({ magnetLink: magnet, name, size: '', destination: settings.downloadPath || 'C:/Downloads' });
       addToast({ type: 'success', message: `Download started: ${name.slice(0, 50)}` });
       setMagnetInput('');
       setMagnetPreview(null);

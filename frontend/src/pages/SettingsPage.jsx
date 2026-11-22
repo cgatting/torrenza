@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import useAppStore from '../store/useAppStore';
-import { getSettings, saveSettings, getProviders, testProviders } from '../api/client';
+import { getSettings, saveSettings, getProviders, testProviders, isHosted } from '../api/client';
 
 const iconProps = { width: 17, height: 17, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 2, strokeLinecap: 'round', strokeLinejoin: 'round' };
 
@@ -435,16 +435,14 @@ export default function SettingsPage() {
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    getSettings()
-      .then(r => setSettings(r.data || {}))
-      .catch(() => {});
+    if (!isHosted) getSettings().then(r => setSettings(r.data || {})).catch(() => {});
   }, [setSettings]);
 
   const handleSave = async () => {
     setSaving(true);
     try {
-      await saveSettings(settings);
-      addToast({ type: 'success', message: 'Settings saved successfully' });
+      if (!isHosted) await saveSettings(settings);
+      addToast({ type: 'success', message: isHosted ? 'Settings apply for this visit and reset when you reopen Torrenza' : 'Settings saved successfully' });
     } catch {
       addToast({ type: 'error', message: 'Failed to save settings' });
     } finally {

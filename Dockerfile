@@ -1,5 +1,6 @@
 FROM node:22-bookworm-slim AS frontend-build
 WORKDIR /app/frontend
+ENV VITE_HOSTED=true
 COPY frontend/package*.json ./
 RUN npm ci
 COPY frontend/ ./

@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import useAppStore from '../store/useAppStore';
-import { getDownloads, getSystemDrives } from '../api/client';
+import { getDownloads, getSystemDrives, isHosted } from '../api/client';
 
 function StatCard({ icon, label, value, sub, color }) {
   return (
@@ -41,8 +41,10 @@ export default function DashboardPage() {
   const [speedHistory, setSpeedHistory] = useState(Array(24).fill(0));
 
   useEffect(() => {
-    getSystemDrives().then(r => setDrives(r.data.drives || [])).catch(() => {});
-    getDownloads().then(r => setTorrents((r.data?.downloads || []).map(d => ({ ...d, _addedAt: Date.now() })))).catch(() => {});
+    if (!isHosted) {
+      getSystemDrives().then(r => setDrives(r.data.drives || [])).catch(() => {});
+      getDownloads().then(r => setTorrents((r.data?.downloads || []).map(d => ({ ...d, _addedAt: Date.now() })))).catch(() => {});
+    }
   }, [setTorrents]);
 
   const speedKey = torrents.map(t => `${t.downloadSpeed}|${t.uploadSpeed}`).join(',');

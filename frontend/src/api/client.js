@@ -46,11 +46,12 @@ export const getDownloadProgress = (hash) =>
 export const getSystemDrives = () =>
   client.get('/system/drives');
 
-export const getSettings = () =>
-  client.get('/settings');
-
-export const saveSettings = (data) =>
-  client.post('/settings', data);
+const HOSTED = import.meta.env.VITE_HOSTED === 'true';
+const HOSTED_DEFAULTS = { downloadPath: '', maxSpeed: 0, maxConnections: 200, maxActiveDownloads: 5, maxActiveSeeds: 10, listenPort: 6881, sslVerification: true, copyrightFilter: true, enabledSources: [] };
+export const getSettings = () => HOSTED ? Promise.resolve({ data: HOSTED_DEFAULTS }) : client.get('/settings');
+export const saveSettings = (data) => HOSTED ? Promise.resolve({ data }) : client.post('/settings', data);
+export const isHosted = HOSTED;
+export const openMagnet = (magnet) => { window.location.href = magnet; };
 
 export const getProviders = () =>
   client.get('/providers');
