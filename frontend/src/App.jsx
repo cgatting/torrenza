@@ -35,7 +35,6 @@ function ToastContainer() {
 export default function App() {
   const page = useAppStore(state => state.ui.activePage);
   const accent = useAppStore(state => state.settings.accentColor);
-
   return (
     <div style={accents[accent] ? { '--accent': accents[accent] } : undefined}>
       <AppShell>

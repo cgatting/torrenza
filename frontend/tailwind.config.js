@@ -10,10 +10,10 @@ export default {
       colors: {
         primary: 'rgb(var(--accent) / <alpha-value>)',
         ink: 'var(--ink)',
-        gray: { 200: '#39354d', 300: '#474259', 400: '#625d75', 500: '#68647b', 600: '#59546e' },
-        surface: '#f7f6fb',
-        elevated: { DEFAULT: '#ffffff', hover: '#f0edf8' },
-        border: { DEFAULT: '#e6e3ef', subtle: '#f0edf7', active: 'rgb(var(--accent) / <alpha-value>)' },
+        gray: { 200: '#e8e4f3', 300: '#d1cbe0', 400: '#a29bb9', 500: '#817a96', 600: '#655f78' },
+        surface: '#181622',
+        elevated: { DEFAULT: '#1f1d2a', hover: '#292638' },
+        border: { DEFAULT: '#353147', subtle: '#2c293a', active: 'rgb(var(--accent) / <alpha-value>)' },
         accent: {
           cyan: '#00D9FF',
           purple: '#A855F7',

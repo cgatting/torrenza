@@ -30,20 +30,6 @@ const SECTIONS = [
     ),
   },
   {
-    id: 'appearance',
-    label: 'Appearance',
-    description: 'Accent color and theme options',
-    icon: (
-      <svg {...iconProps}>
-        <circle cx="13.5" cy="6.5" r="0.5" fill="currentColor" />
-        <circle cx="17.5" cy="10.5" r="0.5" fill="currentColor" />
-        <circle cx="8.5" cy="7.5" r="0.5" fill="currentColor" />
-        <circle cx="6.5" cy="12.5" r="0.5" fill="currentColor" />
-        <path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.012 17.461 2 12 2z" />
-      </svg>
-    ),
-  },
-  {
     id: 'providers',
     label: 'Providers',
     description: 'Enable or disable search sources',
@@ -82,7 +68,7 @@ function Field({ label, description, children }) {
   );
 }
 
-function SectionConnection({ settings, updateSetting }) {
+function SectionConnection({ settings, updateSetting, language }) {
   const randomizePort = () => {
     const port = Math.floor(Math.random() * (65535 - 10000)) + 10000;
     updateSetting('listenPort', port);
@@ -90,7 +76,7 @@ function SectionConnection({ settings, updateSetting }) {
 
   return (
     <div className="space-y-7">
-      <Field label="Listen Port" description="Port used for incoming connections. Randomize if blocked.">
+      <Field label={language === 'de' ? 'Eingehender Port' : 'Listen Port'} description={language === 'de' ? 'Port für eingehende Verbindungen. Bei einer Blockierung zufällig wählen.' : 'Port used for incoming connections. Randomize if blocked.'}>
         <div className="flex gap-3">
           <input
             type="number"
@@ -99,13 +85,13 @@ function SectionConnection({ settings, updateSetting }) {
             className="input w-32"
           />
           <button onClick={randomizePort} className="btn-secondary text-sm">
-            Randomize
+            {language === 'de' ? 'Zufällig wählen' : 'Randomize'}
           </button>
         </div>
       </Field>
 
       <div className="grid grid-cols-2 gap-4">
-        <Field label="Max Connections">
+        <Field label={language === 'de' ? 'Maximale Verbindungen' : 'Max Connections'}>
           <input
             type="number"
             value={settings.maxConnections || 200}
@@ -113,7 +99,7 @@ function SectionConnection({ settings, updateSetting }) {
             className="input"
           />
         </Field>
-        <Field label="Max Active Downloads">
+        <Field label={language === 'de' ? 'Maximale aktive Downloads' : 'Max Active Downloads'}>
           <input
             type="number"
             value={settings.maxActiveDownloads || 5}
@@ -123,7 +109,7 @@ function SectionConnection({ settings, updateSetting }) {
         </Field>
       </div>
 
-      <Field label="Max Upload Speed (KB/s)" description="0 = unlimited">
+      <Field label={language === 'de' ? 'Maximale Upload-Geschwindigkeit (KB/s)' : 'Max Upload Speed (KB/s)'} description={language === 'de' ? '0 = unbegrenzt' : '0 = unlimited'}>
         <input
           type="number"
           value={settings.maxSpeed || 0}
@@ -136,24 +122,24 @@ function SectionConnection({ settings, updateSetting }) {
         <Toggle
           checked={settings.sslVerification !== false}
           onChange={e => updateSetting('sslVerification', e.target.checked)}
-          label="Verify SSL Certificates"
-          description="Reject connections with invalid TLS certificates"
+          label={language === 'de' ? 'SSL-Zertifikate überprüfen' : 'Verify SSL Certificates'}
+          description={language === 'de' ? 'Verbindungen mit ungültigen TLS-Zertifikaten ablehnen' : 'Reject connections with invalid TLS certificates'}
         />
         <Toggle
           checked={settings.copyrightFilter === true}
           onChange={e => updateSetting('copyrightFilter', e.target.checked)}
-          label="Filter Copyrighted Content"
-          description="Hide results flagged as copyrighted material"
+          label={language === 'de' ? 'Urheberrechtlich geschützte Inhalte filtern' : 'Filter Copyrighted Content'}
+          description={language === 'de' ? 'Als urheberrechtlich geschützt markierte Ergebnisse ausblenden' : 'Hide results flagged as copyrighted material'}
         />
       </div>
     </div>
   );
 }
 
-function SectionDownloads({ settings, updateSetting }) {
+function SectionDownloads({ settings, updateSetting, language }) {
   return (
     <div className="space-y-7">
-      <Field label="Default Download Path" description="Where downloaded files are saved">
+      <Field label={language === 'de' ? 'Standard-Downloadpfad' : 'Default Download Path'} description={language === 'de' ? 'Speicherort für heruntergeladene Dateien' : 'Where downloaded files are saved'}>
         <input
           type="text"
           value={settings.downloadPath || 'C:/Downloads'}
@@ -163,7 +149,7 @@ function SectionDownloads({ settings, updateSetting }) {
       </Field>
 
       <div className="grid grid-cols-2 gap-4">
-        <Field label="Max Active Seeds">
+        <Field label={language === 'de' ? 'Maximale aktive Uploads' : 'Max Active Seeds'}>
           <input
             type="number"
             value={settings.maxActiveSeeds || 10}
@@ -171,7 +157,7 @@ function SectionDownloads({ settings, updateSetting }) {
             className="input"
           />
         </Field>
-        <Field label="Queue Size">
+        <Field label={language === 'de' ? 'Warteschlangengröße' : 'Queue Size'}>
           <input
             type="number"
             value={settings.queueSize || 100}
@@ -180,34 +166,6 @@ function SectionDownloads({ settings, updateSetting }) {
           />
         </Field>
       </div>
-    </div>
-  );
-}
-
-function SectionAppearance({ settings, updateSetting }) {
-  const colors = [
-    { name: 'Orange', color: '#e89557' },
-    { name: 'Green', color: '#4CAF50' },
-    { name: 'Cyan', color: '#00D9FF' },
-    { name: 'Purple', color: '#A855F7' },
-    { name: 'Amber', color: '#F59E0B' },
-  ];
-
-  return (
-    <div className="space-y-7">
-      <Field label="Accent Color" description="Choose the primary accent color for the interface">
-        <div className="flex gap-3">
-          {colors.map(c => (
-            <button
-              key={c.name}
-              onClick={() => updateSetting('accentColor', c.color)}
-              className={`w-10 h-10 rounded-xl border-2 transition-all ${settings.accentColor === c.color ? 'border-white scale-110 shadow-lg' : 'border-transparent hover:border-border scale-100'}`}
-              style={{ backgroundColor: c.color }}
-              title={c.name}
-            />
-          ))}
-        </div>
-      </Field>
     </div>
   );
 }
@@ -224,12 +182,12 @@ function ProviderLogo({ name, color }) {
   );
 }
 
-function ProviderStatusBadge({ status, latencyMs, resultCount }) {
+function ProviderStatusBadge({ status, latencyMs, resultCount, language }) {
   if (status === 'testing') {
     return (
       <span className="badge-gray text-[10px]">
         <div className="w-3 h-3 border-2 border-gray-400/30 border-t-gray-400 rounded-full animate-spin" />
-        Testing…
+        {language === 'de' ? 'Wird getestet…' : 'Testing…'}
       </span>
     );
   }
@@ -237,7 +195,7 @@ function ProviderStatusBadge({ status, latencyMs, resultCount }) {
     return (
       <span className="badge-green text-[10px]">
         <div className="w-1.5 h-1.5 rounded-full bg-primary" />
-        Online{latencyMs ? ` · ${latencyMs}ms` : ''}{resultCount != null ? ` · ${resultCount} results` : ''}
+        Online{latencyMs ? ` · ${latencyMs} ms` : ''}{resultCount != null ? ` · ${resultCount} ${language === 'de' ? 'Ergebnisse' : 'results'}` : ''}
       </span>
     );
   }
@@ -245,19 +203,19 @@ function ProviderStatusBadge({ status, latencyMs, resultCount }) {
     return (
       <span className="badge-rose text-[10px]">
         <div className="w-1.5 h-1.5 rounded-full bg-rose-400" />
-        Unreachable
+        {language === 'de' ? 'Nicht erreichbar' : 'Unreachable'}
       </span>
     );
   }
   return (
     <span className="badge-gray text-[10px]">
       <div className="w-1.5 h-1.5 rounded-full bg-gray-500" />
-      Not tested
+      {language === 'de' ? 'Nicht getestet' : 'Not tested'}
     </span>
   );
 }
 
-function SectionProviders({ settings, updateSetting, addToast }) {
+function SectionProviders({ settings, updateSetting, addToast, language }) {
   const [providers, setProviders] = useState([]);
   const [testStatus, setTestStatus] = useState({});
   const [testAllRunning, setTestAllRunning] = useState(false);
@@ -288,9 +246,9 @@ function SectionProviders({ settings, updateSetting, addToast }) {
       }
     } catch {
       setTestStatus(prev => ({ ...prev, [providerId]: { status: 'offline' } }));
-      addToast({ type: 'error', message: `Test failed for ${providerId}` });
+      addToast({ type: 'error', message: language === 'de' ? `Test für ${providerId} fehlgeschlagen` : `Test failed for ${providerId}` });
     }
-  }, [addToast]);
+  }, [addToast, language]);
 
   const runTestAll = useCallback(async () => {
     setTestAllRunning(true);
@@ -308,13 +266,13 @@ function SectionProviders({ settings, updateSetting, addToast }) {
       });
       setTestStatus(next);
       const online = results.filter(r => r.ok).length;
-      addToast({ type: 'success', message: `Test complete: ${online}/${results.length} providers online` });
+      addToast({ type: 'success', message: language === 'de' ? `Test abgeschlossen: ${online}/${results.length} Quellen online` : `Test complete: ${online}/${results.length} providers online` });
     } catch {
-      addToast({ type: 'error', message: 'Provider test failed' });
+      addToast({ type: 'error', message: language === 'de' ? 'Quellentest fehlgeschlagen' : 'Provider test failed' });
     } finally {
       setTestAllRunning(false);
     }
-  }, [addToast]);
+  }, [addToast, language]);
 
   const toggleProvider = (provider) => {
     const current = settings.enabledSources || [];
@@ -330,8 +288,8 @@ function SectionProviders({ settings, updateSetting, addToast }) {
     <div className="space-y-5">
       <div className="flex items-center justify-between">
         <div>
-          <h3 className="text-sm font-semibold text-ink mb-1">Torrent Sources</h3>
-          <p className="text-xs text-gray-500">Test each source and toggle what Search uses</p>
+          <h3 className="text-sm font-semibold text-ink mb-1">{language === 'de' ? 'Torrent-Quellen' : 'Torrent Sources'}</h3>
+          <p className="text-xs text-gray-500">{language === 'de' ? 'Teste die Quellen und wähle aus, welche die Suche verwendet' : 'Test each source and toggle what Search uses'}</p>
         </div>
         <button
           onClick={runTestAll}
@@ -341,7 +299,7 @@ function SectionProviders({ settings, updateSetting, addToast }) {
           {testAllRunning ? (
             <>
               <div className="w-3.5 h-3.5 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
-              Testing all…
+              {language === 'de' ? 'Alle werden getestet…' : 'Testing all…'}
             </>
           ) : (
             <>
@@ -349,7 +307,7 @@ function SectionProviders({ settings, updateSetting, addToast }) {
                 <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
                 <polyline points="22,4 12,14.01 9,11.01" />
               </svg>
-              Test All
+              {language === 'de' ? 'Alle testen' : 'Test All'}
             </>
           )}
         </button>
@@ -357,7 +315,7 @@ function SectionProviders({ settings, updateSetting, addToast }) {
 
       {enabledCount > 0 && (
         <div className="text-xs text-gray-500">
-          {enabledCount} of {providers.length || 2} source{enabledCount === 1 ? '' : 's'} enabled for search
+          {language === 'de' ? `${enabledCount} von ${providers.length || 2} Quellen für die Suche aktiviert` : `${enabledCount} of ${providers.length || 2} source${enabledCount === 1 ? '' : 's'} enabled for search`}
         </div>
       )}
 
@@ -386,12 +344,13 @@ function SectionProviders({ settings, updateSetting, addToast }) {
                         status={status.status}
                         latencyMs={status.latencyMs}
                         resultCount={status.resultCount}
+                        language={language}
                       />
                     )}
                   </div>
                   <p className="text-xs text-gray-500 mt-1.5 leading-relaxed">{provider.description}</p>
                   {status?.status === 'offline' && status.error && (
-                    <p className="text-[11px] text-rose-700/80 mt-1 truncate" title={status.error}>
+                    <p className="text-[11px] text-rose-300/90 mt-1 truncate" title={status.error}>
                       {status.error}
                     </p>
                   )}
@@ -403,11 +362,11 @@ function SectionProviders({ settings, updateSetting, addToast }) {
                     disabled={testStatus[provider.id]?.status === 'testing'}
                     className="btn-secondary text-xs px-3.5 py-2"
                   >
-                    {testStatus[provider.id]?.status === 'testing' ? 'Testing…' : 'Test'}
+                    {testStatus[provider.id]?.status === 'testing' ? (language === 'de' ? 'Wird getestet…' : 'Testing…') : (language === 'de' ? 'Testen' : 'Test')}
                   </button>
                   <label className="flex items-center gap-2 cursor-pointer group">
                     <span className="text-xs text-gray-400 group-hover:text-gray-200 transition-colors">
-                      {isEnabled ? 'Enabled' : 'Disabled'}
+                      {isEnabled ? (language === 'de' ? 'Aktiviert' : 'Enabled') : (language === 'de' ? 'Deaktiviert' : 'Disabled')}
                     </span>
                     <div className="relative">
                       <input
@@ -431,7 +390,7 @@ function SectionProviders({ settings, updateSetting, addToast }) {
 }
 
 export default function SettingsPage() {
-  const { settings, setSettings, updateSetting, addToast } = useAppStore();
+  const { settings, setSettings, updateSetting, addToast, language } = useAppStore();
   const [activeSection, setActiveSection] = useState('connection');
   const [saving, setSaving] = useState(false);
 
@@ -443,9 +402,11 @@ export default function SettingsPage() {
     setSaving(true);
     try {
       if (!isHosted) await saveSettings(settings);
-      addToast({ type: 'success', message: isHosted ? 'Settings apply for this visit and reset when you reopen Torrenza' : 'Settings saved successfully' });
+      addToast({ type: 'success', message: isHosted
+        ? (language === 'de' ? 'Einstellungen gelten für diesen Besuch und werden beim nächsten Öffnen zurückgesetzt.' : 'Settings apply for this visit and reset when you reopen Torrenza')
+        : (language === 'de' ? 'Einstellungen gespeichert' : 'Settings saved successfully') });
     } catch {
-      addToast({ type: 'error', message: 'Failed to save settings' });
+      addToast({ type: 'error', message: language === 'de' ? 'Einstellungen konnten nicht gespeichert werden' : 'Failed to save settings' });
     } finally {
       setSaving(false);
     }
@@ -455,16 +416,16 @@ export default function SettingsPage() {
 
   return (
     <div className="animate-fade-in">
-      <PageHeader title="Settings" description="Manage connection, downloads, appearance, and sources.">
+      <PageHeader title={language === 'de' ? 'Einstellungen' : 'Settings'} description={language === 'de' ? 'Verbindung, Downloads und Suchquellen verwalten.' : 'Manage connection, downloads, and search sources.'}>
         <button
           onClick={handleSave}
           disabled={saving}
           className="btn-primary"
         >
-          {saving ? (
+              {saving ? (
             <>
               <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-              Saving…
+              {language === 'de' ? 'Wird gespeichert…' : 'Saving…'}
             </>
           ) : (
             <>
@@ -473,14 +434,14 @@ export default function SettingsPage() {
                 <polyline points="17 21 17 13 7 13 7 21" />
                 <polyline points="7 3 7 8 15 8" />
               </svg>
-              Save Changes
+              {language === 'de' ? 'Änderungen speichern' : 'Save Changes'}
             </>
           )}
         </button>
       </PageHeader>
 
       <div className="settings-layout mt-6">
-        <div className="settings-nav card p-2" aria-label="Settings sections" role="group">
+        <div className="settings-nav card p-2" aria-label={language === 'de' ? 'Einstellungsbereiche' : 'Settings sections'} role="group">
             {SECTIONS.map(section => (
               <button
                 key={section.id}
@@ -495,7 +456,7 @@ export default function SettingsPage() {
                 <span className={`flex-shrink-0 ${activeSection === section.id ? 'text-primary' : ''}`}>
                   {section.icon}
                 </span>
-                <span>{section.label}</span>
+                <span>{language === 'de' ? ({ connection: 'Verbindung', downloads: 'Downloads', providers: 'Quellen' }[section.id]) : section.label}</span>
               </button>
             ))}
         </div>
@@ -505,9 +466,9 @@ export default function SettingsPage() {
             <div className="mb-6">
               <h2 className="text-lg font-semibold text-ink flex items-center gap-2.5">
                 <span className="text-primary">{current.icon}</span>
-                {current.label}
+                {language === 'de' ? ({ connection: 'Verbindung', downloads: 'Downloads', providers: 'Quellen' }[current.id]) : current.label}
               </h2>
-              <p className="text-xs text-gray-500 mt-1">{current.description}</p>
+              <p className="text-xs text-gray-500 mt-1">{language === 'de' ? ({ connection: 'Ports, Limits und Sicherheitseinstellungen', downloads: 'Pfade, Warteschlange und Upload-Limits', providers: 'Suchquellen aktivieren oder deaktivieren' }[current.id]) : current.description}</p>
             </div>
 
             {activeSection === 'connection' && (
@@ -515,9 +476,6 @@ export default function SettingsPage() {
             )}
             {activeSection === 'downloads' && (
               <SectionDownloads settings={settings} updateSetting={updateSetting} />
-            )}
-            {activeSection === 'appearance' && (
-              <SectionAppearance settings={settings} updateSetting={updateSetting} />
             )}
             {activeSection === 'providers' && (
               <SectionProviders settings={settings} updateSetting={updateSetting} addToast={addToast} />

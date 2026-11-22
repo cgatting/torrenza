@@ -1,11 +1,24 @@
 import { create } from 'zustand';
 
+function readSavedLanguage() {
+  try { return typeof window !== 'undefined' && window.localStorage.getItem('torrenza:language') === 'de' ? 'de' : 'en'; }
+  catch { return 'en'; }
+}
+
+const savedLanguage = readSavedLanguage();
+
 const useAppStore = create((set, get) => ({
   torrents: [],
   connection: 'connecting',
   samples: [],
+  language: savedLanguage,
 
   setConnection: (connection) => set({ connection }),
+  setLanguage: (language) => {
+    try { if (typeof window !== 'undefined') window.localStorage.setItem('torrenza:language', language); } catch { /* Language remains active for this session. */ }
+    if (typeof document !== 'undefined') document.documentElement.lang = language;
+    set({ language });
+  },
   recordDownloads: (downloads) => set((state) => {
     const previous = new Map(state.torrents.map(torrent => [torrent.hash, torrent._addedAt]));
     const now = Date.now();

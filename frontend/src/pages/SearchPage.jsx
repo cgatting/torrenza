@@ -5,19 +5,18 @@ import useAppStore from '../store/useAppStore';
 import { searchTorrents, startDownload, previewMagnet, openMagnet, isHosted } from '../api/client';
 
 const CATEGORIES = [
-  { id: 'all', label: 'All', icon: Grid2X2 },
-  { id: 'video', label: 'Movies', icon: Film },
-  { id: 'audio', label: 'Music', icon: Music2 },
-  { id: 'image', label: 'Images', icon: Image },
-  { id: 'software', label: 'Software', icon: Monitor },
-  { id: 'document', label: 'Documents', icon: FileText },
+  { id: 'all', label: { en: 'All', de: 'Alle' }, icon: Grid2X2 },
+  { id: 'video', label: { en: 'Movies', de: 'Filme' }, icon: Film },
+  { id: 'audio', label: { en: 'Music', de: 'Musik' }, icon: Music2 },
+  { id: 'image', label: { en: 'Images', de: 'Bilder' }, icon: Image },
+  { id: 'software', label: { en: 'Software', de: 'Software' }, icon: Monitor },
+  { id: 'document', label: { en: 'Documents', de: 'Dokumente' }, icon: FileText },
 ];
-
 const SORT_OPTIONS = [
-  { value: 'seeders', label: 'Most Seeders' },
-  { value: 'fastest', label: 'Fastest Download' },
-  { value: 'size', label: 'File Size' },
-  { value: 'name', label: 'Name A-Z' },
+  { value: 'seeders', label: { en: 'Most Seeders', de: 'Meiste Seeder' } },
+  { value: 'fastest', label: { en: 'Fastest Download', de: 'Schnellster Download' } },
+  { value: 'size', label: { en: 'File Size', de: 'Dateigröße' } },
+  { value: 'name', label: { en: 'Name A-Z', de: 'Name A–Z' } },
 ];
 
 function formatBytes(bytes) {
@@ -27,10 +26,13 @@ function formatBytes(bytes) {
   return `${(bytes / Math.pow(1024, i)).toFixed(i === 0 ? 0 : 2)} ${units[i]}`;
 }
 
-function SearchRadar({ term, sources }) {
+function SearchRadar({ term, sources, language }) {
+  const text = language === 'de'
+    ? { state: 'SUCHE LÄUFT', heading: 'Indizes werden durchsucht', query: 'Suche nach', waiting: 'Warte auf Antworten der Quellen' }
+    : { state: 'SEARCH IN PROGRESS', heading: 'Scanning the indexes', query: 'Looking for', waiting: 'Waiting for sources to respond' };
   return <div className="search-radar-card" role="status" aria-live="polite">
     <div className="search-radar" aria-hidden="true"><div className="radar-ring"/><div className="radar-ring inner"/><div className="radar-sweep"/><span className="radar-dot one"/><span className="radar-dot two"/><span className="radar-dot three"/><div className="radar-core"><svg width="27" height="27" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m15.5 15.5 5 5"/></svg></div></div>
-    <div className="radar-copy"><div className="radar-label"><span/> SEARCH IN PROGRESS</div><h3>Scanning the indexes<span className="radar-dots">...</span></h3><p>Looking for <strong>“{term}”</strong></p><div className="radar-sources">{sources.map((source, i) => <span key={source} style={{animationDelay:`${i * .12}s`}}>{source}</span>)}</div><small>Waiting for sources to respond</small></div>
+    <div className="radar-copy"><div className="radar-label"><span/> {text.state}</div><h3>{text.heading}<span className="radar-dots">...</span></h3><p>{text.query} <strong>“{term}”</strong></p><div className="radar-sources">{sources.map((source, i) => <span key={source} style={{animationDelay:`${i * .12}s`}}>{source}</span>)}</div><small>{text.waiting}</small></div>
   </div>;
 }
 
@@ -80,7 +82,7 @@ function TypeIcon({ name }) {
     );
   }
   return (
-    <div className={`${base} bg-accent-cyan/12 text-sky-700`}>
+    <div className={`${base} bg-accent-cyan/12 text-sky-300`}>
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
         <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
         <polyline points="14,2 14,8 20,8" />
@@ -89,7 +91,7 @@ function TypeIcon({ name }) {
   );
 }
 
-function ResultCard({ result, onDownload, isDownloading, onCopyMagnet }) {
+function ResultCard({ result, onDownload, isDownloading, onCopyMagnet, language }) {
   const [expanded, setExpanded] = useState(false);
   const isHD = /\b(720p|1080p|2160p|4k|uhd)\b/i.test(result.name);
   const codecMatch = result.name.match(/\b(x264|x265|hevc|h264|av1|vp9)\b/i);
@@ -118,7 +120,7 @@ function ResultCard({ result, onDownload, isDownloading, onCopyMagnet }) {
                 <span className="flex items-center gap-1.5">
                   <HealthDot seeders={result.seeders} />
                   <span className="font-medium text-gray-300">{result.seeders.toLocaleString()}</span>
-                  seeders
+                  {language === 'de' ? 'Seeder' : 'seeders'}
                 </span>
                 <span className="flex items-center gap-1.5">
                   <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -127,7 +129,7 @@ function ResultCard({ result, onDownload, isDownloading, onCopyMagnet }) {
                   {result.size}
                 </span>
                 {result.peers > 0 && (
-                  <span className="text-gray-500">{result.peers.toLocaleString()} leechers</span>
+                  <span className="text-gray-500">{result.peers.toLocaleString()} {language === 'de' ? 'Leecher' : 'leechers'}</span>
                 )}
               </div>
             </div>
@@ -141,7 +143,7 @@ function ResultCard({ result, onDownload, isDownloading, onCopyMagnet }) {
                 {isDownloading ? (
                   <>
                     <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                    Starting…
+                    {language === 'de' ? 'Wird gestartet…' : 'Starting…'}
                   </>
                 ) : (
                   <>
@@ -150,7 +152,7 @@ function ResultCard({ result, onDownload, isDownloading, onCopyMagnet }) {
                       <polyline points="7,10 12,15 17,10" />
                       <line x1="12" y1="15" x2="12" y2="3" />
                     </svg>
-                    Download
+                    {language === 'de' ? 'Herunterladen' : 'Download'}
                   </>
                 )}
               </button>
@@ -158,8 +160,8 @@ function ResultCard({ result, onDownload, isDownloading, onCopyMagnet }) {
                 <button
                   onClick={() => onCopyMagnet(result)}
                   className="btn-icon"
-                  title="Copy magnet link"
-                  aria-label="Copy magnet link"
+                  title={language === 'de' ? 'Magnet-Link kopieren' : 'Copy magnet link'}
+                  aria-label={language === 'de' ? 'Magnet-Link kopieren' : 'Copy magnet link'}
                 >
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                     <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
@@ -170,7 +172,7 @@ function ResultCard({ result, onDownload, isDownloading, onCopyMagnet }) {
                   onClick={() => setExpanded(!expanded)}
                   className="text-xs text-gray-500 hover:text-ink transition-colors px-1"
                 >
-                  {expanded ? 'Less' : 'More'}
+                  {expanded ? (language === 'de' ? 'Weniger' : 'Less') : (language === 'de' ? 'Mehr' : 'More')}
                 </button>
               </div>
             </div>
@@ -178,7 +180,7 @@ function ResultCard({ result, onDownload, isDownloading, onCopyMagnet }) {
 
           {expanded && (
             <div className="mt-3 pt-3 border-t border-border-subtle animate-fade-in">
-              <div className="text-[10px] uppercase tracking-wide text-gray-600 mb-1.5">Magnet Link</div>
+              <div className="text-[10px] uppercase tracking-wide text-gray-600 mb-1.5">{language === 'de' ? 'Magnet-Link' : 'Magnet Link'}</div>
               <div className="text-xs text-gray-500 font-mono break-all bg-surface rounded-lg p-2.5 border border-border">
                 {result.magnetLink}
               </div>
@@ -190,19 +192,19 @@ function ResultCard({ result, onDownload, isDownloading, onCopyMagnet }) {
   );
 }
 
-function MagnetPreviewCard({ preview, onDownload, downloading }) {
+function MagnetPreviewCard({ preview, onDownload, downloading, language }) {
   return (
     <div className="mt-4 rounded-xl border border-primary/25 bg-primary/[0.04] p-4 animate-fade-in">
       <div className="result-summary flex items-start justify-between gap-4">
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-1.5">
-            <span className="badge-green text-[10px]">MAGNET COMPILED</span>
+            <span className="badge-green text-[10px]">{language === 'de' ? 'MAGNET-LINK ERSTELLT' : 'MAGNET COMPILED'}</span>
             {preview.meta?.status === 'ok' && (
-              <span className="badge-gray text-[10px]">✓ Metadata fetched</span>
+              <span className="badge-gray text-[10px]">✓ {language === 'de' ? 'Metadaten abgerufen' : 'Metadata fetched'}</span>
             )}
           </div>
           <h4 className="text-ink font-semibold text-sm mb-1.5 break-words">
-            {preview.parsed?.name || 'Unnamed torrent'}
+            {preview.parsed?.name || (language === 'de' ? 'Unbenannter Torrent' : 'Unnamed torrent')}
           </h4>
           {preview.parsed?.hash && (
             <div className="flex items-center gap-2 text-xs text-gray-400 font-mono mb-1 break-all">
@@ -218,17 +220,17 @@ function MagnetPreviewCard({ preview, onDownload, downloading }) {
                 </svg>
                 {formatBytes(preview.meta.total_size)}
               </span>
-              <span>{preview.meta.num_files} files</span>
+              <span>{preview.meta.num_files} {language === 'de' ? 'Dateien' : 'files'}</span>
             </div>
           )}
           {preview.meta?.status && preview.meta.status !== 'ok' && (
-            <p className="text-xs text-amber-800/90 mt-1.5">
-              {preview.meta.message || 'Metadata not available yet — you can still start the download.'}
+            <p className="text-xs text-amber-200 mt-1.5">
+              {preview.meta.message || (language === 'de' ? 'Metadaten sind noch nicht verfügbar. Du kannst den Download trotzdem starten.' : 'Metadata not available yet — you can still start the download.')}
             </p>
           )}
           {preview.parsed?.trackers?.length > 0 && (
             <p className="text-xs text-gray-500 mt-1.5">
-              {preview.parsed.trackers.length} tracker{preview.parsed.trackers.length === 1 ? '' : 's'} attached
+              {preview.parsed.trackers.length} {language === 'de' ? 'Tracker hinzugefügt' : `tracker${preview.parsed.trackers.length === 1 ? '' : 's'} attached`}
             </p>
           )}
         </div>
@@ -240,7 +242,7 @@ function MagnetPreviewCard({ preview, onDownload, downloading }) {
           {downloading ? (
             <>
               <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-              Starting…
+              {language === 'de' ? 'Wird gestartet…' : 'Starting…'}
             </>
           ) : (
             <>
@@ -249,7 +251,7 @@ function MagnetPreviewCard({ preview, onDownload, downloading }) {
                 <polyline points="7,10 12,15 17,10" />
                 <line x1="12" y1="15" x2="12" y2="3" />
               </svg>
-              Download
+              {language === 'de' ? 'Herunterladen' : 'Download'}
             </>
           )}
         </button>
@@ -257,7 +259,7 @@ function MagnetPreviewCard({ preview, onDownload, downloading }) {
 
       {preview.meta?.status === 'ok' && preview.meta.files?.length > 0 && (
         <div className="mt-3 pt-3 border-t border-border-subtle">
-          <div className="text-[10px] uppercase tracking-wide text-gray-500 mb-2">Files</div>
+          <div className="text-[10px] uppercase tracking-wide text-gray-500 mb-2">{language === 'de' ? 'Dateien' : 'Files'}</div>
           <div className="max-h-40 overflow-y-auto space-y-1">
             {preview.meta.files.slice(0, 20).map((f, i) => (
               <div key={i} className="flex items-center justify-between gap-3 text-xs text-gray-400">
@@ -266,7 +268,7 @@ function MagnetPreviewCard({ preview, onDownload, downloading }) {
               </div>
             ))}
             {preview.meta.files.length > 20 && (
-              <div className="text-xs text-gray-500">+ {preview.meta.files.length - 20} more files</div>
+              <div className="text-xs text-gray-500">+ {preview.meta.files.length - 20} {language === 'de' ? 'weitere Dateien' : 'more files'}</div>
             )}
           </div>
         </div>
@@ -308,7 +310,7 @@ export default function SearchPage() {
       return [];
     }
   });
-  const { addToast, settings, ui, setPendingSearch } = useAppStore();
+  const { addToast, settings, ui, setPendingSearch, language } = useAppStore();
   const searchInputRef = useRef(null);
 
   const saveRecentSearch = (term) => {
@@ -427,35 +429,35 @@ export default function SearchPage() {
         setPendingHandoff({ magnet: result.magnetLink, name: result.name, ...inspectTorrent(preview) });
       } else {
         await startDownload({ magnetLink: result.magnetLink, name: result.name, size: result.size, destination: settings.downloadPath || 'C:/Downloads' });
-        addToast({ type: 'success', message: `Download started: ${result.name.slice(0, 50)}` });
+        addToast({ type: 'success', message: language === 'de' ? `Download gestartet: ${result.name.slice(0, 50)}` : `Download started: ${result.name.slice(0, 50)}` });
       }
     } catch (err) {
-      addToast({ type: 'error', message: `Failed to start download: ${err.message}` });
+      addToast({ type: 'error', message: language === 'de' ? `Download konnte nicht gestartet werden: ${err.message}` : `Failed to start download: ${err.message}` });
     } finally {
       setCheckingTorrent(false);
       setDownloadingHashes(prev => { const next = new Set(prev); next.delete(result.hash); return next; });
     }
-  }, [downloadingHashes, settings.downloadPath, addToast]);
+  }, [downloadingHashes, settings.downloadPath, addToast, language]);
 
   const continueToTorrentApp = useCallback((magnet, name) => {
     openMagnet(magnet);
-    addToast({ type: 'info', message: `Handed “${name.slice(0, 45)}” to your torrent app. Torrenza only checked torrent metadata; it did not scan downloaded files for viruses.` });
+    addToast({ type: 'info', message: language === 'de' ? `„${name.slice(0, 45)}“ an deine Torrent-App übergeben. Torrenza hat nur Torrent-Metadaten geprüft und heruntergeladene Dateien nicht auf Viren untersucht.` : `Handed “${name.slice(0, 45)}” to your torrent app. Torrenza only checked torrent metadata; it did not scan downloaded files for viruses.` });
     setPendingHandoff(null);
-  }, [addToast]);
+  }, [addToast, language]);
 
   const handleCopyMagnet = useCallback(async (result) => {
     try {
       await navigator.clipboard.writeText(result.magnetLink || '');
-      addToast({ type: 'success', message: 'Magnet link copied to clipboard' });
+      addToast({ type: 'success', message: language === 'de' ? 'Magnet-Link in die Zwischenablage kopiert' : 'Magnet link copied to clipboard' });
     } catch {
-      addToast({ type: 'error', message: 'Could not copy magnet link' });
+      addToast({ type: 'error', message: language === 'de' ? 'Magnet-Link konnte nicht kopiert werden' : 'Could not copy magnet link' });
     }
-  }, [addToast]);
+  }, [addToast, language]);
 
   const handleMagnetPreview = useCallback(async () => {
     const magnet = magnetInput.trim();
     if (!magnet.startsWith('magnet:?')) {
-      setPreviewError('Please paste a valid magnet link starting with "magnet:?"');
+      setPreviewError(language === 'de' ? 'Bitte füge einen gültigen Magnet-Link ein, der mit „magnet:?“ beginnt.' : 'Please paste a valid magnet link starting with "magnet:?"');
       setMagnetPreview(null);
       return;
     }
@@ -466,11 +468,11 @@ export default function SearchPage() {
       const res = await previewMagnet({ magnetLink: magnet });
       setMagnetPreview(res.data);
     } catch {
-      setPreviewError('Could not compile this magnet. It may still download — try Download.');
+      setPreviewError(language === 'de' ? 'Dieser Magnet-Link konnte nicht gelesen werden. Der Download könnte trotzdem funktionieren.' : 'Could not compile this magnet. It may still download — try Download.');
     } finally {
       setPreviewing(false);
     }
-  }, [magnetInput]);
+  }, [magnetInput, language]);
 
   const handleMagnetDownload = useCallback(async () => {
     const magnet = magnetInput.trim();
@@ -482,36 +484,36 @@ export default function SearchPage() {
         setPendingHandoff({ magnet, name, ...inspectTorrent(magnetPreview) });
         return;
       } else await startDownload({ magnetLink: magnet, name, size: '', destination: settings.downloadPath || 'C:/Downloads' });
-      addToast({ type: 'success', message: `Download started: ${name.slice(0, 50)}` });
+      addToast({ type: 'success', message: language === 'de' ? `Download gestartet: ${name.slice(0, 50)}` : `Download started: ${name.slice(0, 50)}` });
       setMagnetInput('');
       setMagnetPreview(null);
       setPreviewError('');
     } catch (err) {
-      addToast({ type: 'error', message: `Failed to start download: ${err.message}` });
+      addToast({ type: 'error', message: language === 'de' ? `Download konnte nicht gestartet werden: ${err.message}` : `Failed to start download: ${err.message}` });
     } finally {
       setMagnetDownloading(false);
     }
-  }, [magnetInput, magnetPreview, settings.downloadPath, addToast]);
+  }, [magnetInput, magnetPreview, settings.downloadPath, addToast, language]);
 
   return (
     <div className="space-y-6 animate-fade-in">
       {checkingTorrent && <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4" role="status" aria-live="polite">
         <div className="card w-full max-w-sm border-primary/30 text-center py-8 px-6">
           <div className="metadata-scan-art mx-auto mb-5" aria-hidden="true"><div className="metadata-scan-ring"/><div className="metadata-scan-line"/><span className="metadata-scan-point point-a"/><span className="metadata-scan-point point-b"/><span className="metadata-scan-shield">⌕</span></div>
-           <h2 className="mt-2 text-lg font-semibold text-ink">Inspecting torrent metadata</h2><p className="mt-2 text-sm text-gray-400">Checking the file list for executable and script filenames…</p><p className="mt-4 text-[11px] text-gray-500">This checks names only; it does not scan file contents.</p>
+           <h2 className="mt-2 text-lg font-semibold text-ink">{language === 'de' ? 'Torrent-Metadaten werden geprüft' : 'Inspecting torrent metadata'}</h2><p className="mt-2 text-sm text-gray-400">{language === 'de' ? 'Dateiliste wird auf Namen ausführbarer Dateien und Skripte geprüft…' : 'Checking the file list for executable and script filenames…'}</p><p className="mt-4 text-[11px] text-gray-500">{language === 'de' ? 'Dabei werden nur Dateinamen geprüft, nicht der Dateiinhalt.' : 'This checks names only; it does not scan file contents.'}</p>
         </div>
       </div>}
       {pendingHandoff && <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-4" role="dialog" aria-modal="true" aria-labelledby="torrent-check-title">
         <div className="card w-full max-w-xl border-amber-500/30 shadow-2xl">
-          <div className="flex items-start gap-3"><span className="text-2xl">{pendingHandoff.findings.length ? '⚠️' : '🛡️'}</span><div className="min-w-0"><h2 id="torrent-check-title" className="text-lg font-semibold text-ink">Torrent metadata check</h2><p className="mt-1 text-sm text-gray-300 break-words">{pendingHandoff.name}</p></div></div>
-          <p className="mt-4 text-sm text-gray-400">This check inspects filenames and torrent metadata only. It does not scan the files’ contents or certify that they are safe.</p>
-          {!pendingHandoff.inspected && <p className="mt-3 rounded-lg bg-amber-500/10 p-3 text-sm text-amber-900">Torrenza could not retrieve the torrent metadata, so it could not inspect the file list.</p>}
-          {pendingHandoff.findings.length > 0 && <div className="mt-3 rounded-lg bg-rose-500/10 p-3"><p className="text-sm font-medium text-rose-900">Potentially risky filenames found:</p><ul className="mt-2 max-h-36 overflow-auto list-disc pl-5 text-xs text-rose-900">{pendingHandoff.findings.slice(0, 12).map((file, i) => <li key={`${file}-${i}`} className="break-all">{file}</li>)}</ul></div>}
-          {pendingHandoff.inspected && pendingHandoff.findings.length === 0 && <p className="mt-3 text-sm text-emerald-700">No executable or script filenames were found in the metadata. This is not an antivirus scan.</p>}
-          <div className="mt-5 flex justify-end gap-2"><button className="btn-secondary" onClick={() => setPendingHandoff(null)}>Cancel</button><button className="btn-primary" onClick={() => continueToTorrentApp(pendingHandoff.magnet, pendingHandoff.name)}>Continue to torrent app ↗</button></div>
+          <div className="flex items-start gap-3"><span className="text-2xl">{pendingHandoff.findings.length ? '⚠️' : '🛡️'}</span><div className="min-w-0"><h2 id="torrent-check-title" className="text-lg font-semibold text-ink">{language === 'de' ? 'Torrent-Metadatenprüfung' : 'Torrent metadata check'}</h2><p className="mt-1 text-sm text-gray-300 break-words">{pendingHandoff.name}</p></div></div>
+          <p className="mt-4 text-sm text-gray-400">{language === 'de' ? 'Diese Prüfung untersucht nur Dateinamen und Torrent-Metadaten. Sie prüft weder Dateiinhalte noch garantiert sie deren Sicherheit.' : 'This check inspects filenames and torrent metadata only. It does not scan the files’ contents or certify that they are safe.'}</p>
+          {!pendingHandoff.inspected && <p className="mt-3 rounded-lg bg-amber-500/10 p-3 text-sm text-amber-200">{language === 'de' ? 'Torrenza konnte die Torrent-Metadaten nicht abrufen und daher die Dateiliste nicht prüfen.' : 'Torrenza could not retrieve the torrent metadata, so it could not inspect the file list.'}</p>}
+          {pendingHandoff.findings.length > 0 && <div className="mt-3 rounded-lg bg-rose-500/10 p-3"><p className="text-sm font-medium text-rose-200">{language === 'de' ? 'Möglicherweise riskante Dateinamen gefunden:' : 'Potentially risky filenames found:'}</p><ul className="mt-2 max-h-36 overflow-auto list-disc pl-5 text-xs text-rose-200">{pendingHandoff.findings.slice(0, 12).map((file, i) => <li key={`${file}-${i}`} className="break-all">{file}</li>)}</ul></div>}
+          {pendingHandoff.inspected && pendingHandoff.findings.length === 0 && <p className="mt-3 text-sm text-emerald-300">{language === 'de' ? 'In den Metadaten wurden keine ausführbaren Dateien oder Skripte gefunden. Dies ist keine Virenprüfung.' : 'No executable or script filenames were found in the metadata. This is not an antivirus scan.'}</p>}
+          <div className="mt-5 flex justify-end gap-2"><button className="btn-secondary" onClick={() => setPendingHandoff(null)}>{language === 'de' ? 'Abbrechen' : 'Cancel'}</button><button className="btn-primary" onClick={() => continueToTorrentApp(pendingHandoff.magnet, pendingHandoff.name)}>{language === 'de' ? 'Zur Torrent-App wechseln ↗' : 'Continue to torrent app ↗'}</button></div>
         </div>
       </div>}
-      <PageHeader title="Search torrents" description="Find torrents across your enabled sources.">
+      <PageHeader title={language === 'de' ? 'Torrents suchen' : 'Search torrents'} description={language === 'de' ? 'Suche auf deinen aktivierten Quellen.' : 'Find torrents across your enabled sources.'}>
           {results.length > 0 && (
             <span className="badge-gray">{results.length} results</span>
           )}
@@ -524,17 +526,17 @@ export default function SearchPage() {
               <line x1="12" y1="5" x2="12" y2="19" />
               <line x1="5" y1="12" x2="19" y2="12" />
             </svg>
-            Add Magnet
+            {language === 'de' ? 'Magnet-Link hinzufügen' : 'Add Magnet'}
           </button>
       </PageHeader>
 
       {magnetOpen && (
         <div id="magnet-panel" className="card animate-fade-in">
           <div className="flex items-center gap-2 mb-1">
-            <span className="text-sm font-semibold text-ink">Paste a Magnet Link</span>
+            <span className="text-sm font-semibold text-ink">{language === 'de' ? 'Magnet-Link einfügen' : 'Paste a Magnet Link'}</span>
            </div>
           <p className="text-xs text-gray-500 mb-3">
-            Copy any magnet link and we'll compile a preview before downloading.
+            {language === 'de' ? 'Füge einen Magnet-Link ein, um vor dem Download eine Vorschau zu erstellen.' : "Copy any magnet link and we'll compile a preview before downloading."}
           </p>
           <div className="flex gap-2">
             <input
@@ -554,33 +556,34 @@ export default function SearchPage() {
               {previewing ? (
                 <>
                   <div className="w-3.5 h-3.5 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
-                  Compiling…
+                  {language === 'de' ? 'Vorschau wird erstellt…' : 'Compiling…'}
                 </>
               ) : (
                 <>
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                     <polyline points="9,18 15,12 9,6" />
                   </svg>
-                  Preview
+                  {language === 'de' ? 'Vorschau' : 'Preview'}
                 </>
               )}
             </button>
           </div>
 
-          {previewError && <p className="text-xs text-rose-700 mt-3">{previewError}</p>}
+          {previewError && <p className="text-xs text-rose-300 mt-3">{previewError}</p>}
 
           {magnetPreview && (
             <MagnetPreviewCard
               preview={magnetPreview}
               onDownload={handleMagnetDownload}
               downloading={magnetDownloading}
+              language={language}
             />
           )}
         </div>
       )}
 
       <div className="card">
-        <form role="search" aria-label="Torrent search" onSubmit={handleSearch} className="space-y-4">
+        <form role="search" aria-label={language === 'de' ? 'Torrentsuche' : 'Torrent search'} onSubmit={handleSearch} className="space-y-4">
           <div className="relative">
             <svg
               className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500"
@@ -591,11 +594,11 @@ export default function SearchPage() {
             </svg>
             <input
               ref={searchInputRef}
-              aria-label="Search torrents"
+              aria-label={language === 'de' ? 'Torrents suchen' : 'Search torrents'}
               type="text"
               value={query}
               onChange={e => setQuery(e.target.value)}
-              placeholder="Search movies, shows, software, games…"
+              placeholder={language === 'de' ? 'Filme, Serien, Software, Spiele suchen…' : 'Search movies, shows, software, games…'}
               className="input pl-12 pr-28 sm:pr-36 py-4 text-base"
             />
             <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-2">
@@ -604,7 +607,7 @@ export default function SearchPage() {
                   type="button"
                   onClick={() => { setQuery(''); searchInputRef.current?.focus(); }}
                   className="text-gray-500 hover:text-ink p-1 rounded-md transition-colors"
-                  aria-label="Clear search"
+                  aria-label={language === 'de' ? 'Suche leeren' : 'Clear search'}
                 >
                   <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                     <line x1="18" y1="6" x2="6" y2="18" />
@@ -614,7 +617,7 @@ export default function SearchPage() {
               )}
               <span className="kbd hidden sm:inline-flex">↵</span>
               <button type="submit" disabled={loading || !query.trim()} className="btn-primary px-3 sm:px-5">
-                Search
+                {language === 'de' ? 'Suchen' : 'Search'}
               </button>
             </div>
           </div>
@@ -629,7 +632,7 @@ export default function SearchPage() {
                   onClick={() => setCategory(cat.id)}
                   className={category === cat.id ? 'chip chip-active' : 'chip chip-idle'}
                 >
-                  <cat.icon size={14} /> {cat.label}
+                  <cat.icon size={14} /> {cat.label[language]}
                 </button>
               ))}
             </div>
@@ -643,14 +646,14 @@ export default function SearchPage() {
                 <select
                   value={minSeeders}
                   onChange={e => setMinSeeders(parseInt(e.target.value))}
-                  title="Minimum seeders filter"
+                  aria-label={language === 'de' ? 'Mindestanzahl Seeder' : 'Minimum seeders filter'}
                   className="bg-surface border border-border rounded-lg px-3 py-1.5 text-xs text-gray-300 focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all"
                 >
-                  <option value={0}>Any seeders</option>
-                  <option value={10}>10+ seeders</option>
-                  <option value={50}>50+ seeders</option>
-                  <option value={100}>100+ seeders</option>
-                  <option value={500}>500+ seeders</option>
+                  <option value={0}>{language === 'de' ? 'Beliebig viele Seeder' : 'Any seeders'}</option>
+                  <option value={10}>10+ {language === 'de' ? 'Seeder' : 'seeders'}</option>
+                  <option value={50}>50+ {language === 'de' ? 'Seeder' : 'seeders'}</option>
+                  <option value={100}>100+ {language === 'de' ? 'Seeder' : 'seeders'}</option>
+                  <option value={500}>500+ {language === 'de' ? 'Seeder' : 'seeders'}</option>
                 </select>
               </div>
               <div className="flex items-center gap-2">
@@ -663,7 +666,7 @@ export default function SearchPage() {
                   className="bg-surface border border-border rounded-lg px-3 py-1.5 text-xs text-gray-300 focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all"
                 >
                   {SORT_OPTIONS.map(opt => (
-                    <option key={opt.value} value={opt.value}>{opt.label}</option>
+                    <option key={opt.value} value={opt.value}>{opt.label[language]}</option>
                   ))}
                 </select>
               </div>
@@ -674,7 +677,7 @@ export default function SearchPage() {
 
       {!searched && recentSearches.length > 0 && (
         <div className="flex flex-wrap items-center gap-2">
-          <span className="section-label mr-1">Recent</span>
+          <span className="section-label mr-1">{language === 'de' ? 'Zuletzt' : 'Recent'}</span>
           {recentSearches.map(q => (
             <button
               key={q}
@@ -690,16 +693,16 @@ export default function SearchPage() {
           ))}
           <button
             onClick={() => { setRecentSearches([]); localStorage.removeItem('torrenza:recentSearches'); }}
-            className="text-xs text-gray-500 hover:text-rose-700 transition-colors ml-1"
+            className="text-xs text-gray-500 hover:text-rose-300 transition-colors ml-1"
           >
-            Clear all
+            {language === 'de' ? 'Alle löschen' : 'Clear all'}
           </button>
         </div>
       )}
 
       {!loading && searched && searchMeta.sourcesSearched.length > 0 && (
         <div className="flex flex-wrap items-center gap-2">
-          <span className="section-label mr-1">Sources</span>
+          <span className="section-label mr-1">{language === 'de' ? 'Quellen' : 'Sources'}</span>
           {searchMeta.sourcesSearched.map((source) => {
             const failureCount = searchMeta.sourcesFailed.filter((item) => item.source === source).length;
             const resultCount = searchMeta.sourceResultCounts.find((item) => item.source === source)?.count || 0;
@@ -713,14 +716,14 @@ export default function SearchPage() {
                   selected
                     ? 'chip bg-primary/10 border-border text-ink'
                     : resultCount > 0
-                      ? 'chip bg-emerald-500/10 border-emerald-500/30 text-emerald-700 hover:border-emerald-500/50'
+                      ? 'chip bg-emerald-500/10 border-emerald-500/30 text-emerald-300 hover:border-emerald-500/50'
                       : failed
-                        ? 'chip bg-rose-500/10 border-rose-500/30 text-rose-700 hover:border-rose-500/50'
+                        ? 'chip bg-rose-500/10 border-rose-500/30 text-rose-300 hover:border-rose-500/50'
                         : 'chip chip-idle'
                 }
               >
                 {source}
-                {resultCount > 0 ? ` (${resultCount})` : failed ? ' — failed' : ''}
+                {resultCount > 0 ? ` (${resultCount})` : failed ? (language === 'de' ? ' — fehlgeschlagen' : ' — failed') : ''}
               </button>
             );
           })}
@@ -729,14 +732,14 @@ export default function SearchPage() {
               onClick={() => setSelectedSources([])}
               className="text-xs text-gray-400 hover:text-ink transition-colors ml-1"
             >
-              Clear filters
+              {language === 'de' ? 'Filter zurücksetzen' : 'Clear filters'}
             </button>
           )}
         </div>
       )}
 
       {loading && (
-        <SearchRadar term={activeSearch} sources={settings.enabledSources || []} />
+        <SearchRadar term={activeSearch} sources={settings.enabledSources || []} language={language} />
       )}
 
       {!loading && results.length > 0 && (
@@ -748,6 +751,7 @@ export default function SearchPage() {
                 onDownload={handleDownload}
                 isDownloading={downloadingHashes.has(result.hash)}
                 onCopyMagnet={handleCopyMagnet}
+                language={language}
               />
             </div>
           ))}
@@ -757,9 +761,9 @@ export default function SearchPage() {
       {!loading && searched && results.length === 0 && (
         <div className="card text-center py-16">
           <div className="text-4xl mb-4">🔍</div>
-          <h3 className="text-lg font-semibold text-ink mb-2">{searchError ? 'Search unavailable' : 'No results found'}</h3>
+          <h3 className="text-lg font-semibold text-ink mb-2">{searchError ? (language === 'de' ? 'Suche nicht verfügbar' : 'Search unavailable') : (language === 'de' ? 'Keine Ergebnisse gefunden' : 'No results found')}</h3>
           <p className="text-gray-400 text-sm max-w-sm mx-auto">
-            {searchError ? 'Torrenza could not complete the search. Try again in a moment.' : 'Try different keywords or adjust the filters.'}
+            {searchError ? (language === 'de' ? 'Die Suche konnte nicht abgeschlossen werden. Versuche es gleich noch einmal.' : 'Torrenza could not complete the search. Try again in a moment.') : (language === 'de' ? 'Versuche andere Suchbegriffe oder passe die Filter an.' : 'Try different keywords or adjust the filters.')}
           </p>
           <button
             onClick={() => {
@@ -772,7 +776,7 @@ export default function SearchPage() {
             }}
             className="btn-secondary mt-4"
           >
-            {searchError ? 'Try again' : 'Clear search'}
+            {searchError ? (language === 'de' ? 'Erneut versuchen' : 'Try again') : (language === 'de' ? 'Suche löschen' : 'Clear search')}
           </button>
         </div>
       )}
@@ -780,8 +784,8 @@ export default function SearchPage() {
       {!loading && !searched && (
         <div className="card search-empty">
           <span className="metric-icon"><SearchIcon size={23} /></span>
-          <h2>Find your next download</h2>
-          <p>Search by name or add a magnet link if you already have one.</p>
+          <h2>{language === 'de' ? 'Finde deinen nächsten Download' : 'Find your next download'}</h2>
+          <p>{language === 'de' ? 'Suche nach Namen oder füge einen Magnet-Link ein.' : 'Search by name or add a magnet link if you already have one.'}</p>
         </div>
       )}
     </div>
