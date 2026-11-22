@@ -3,6 +3,7 @@ const router = express.Router();
 const torrentDownloader = require('../services/torrentDownloader');
 const fs = require('fs');
 const path = require('path');
+const { spawn } = require('child_process');
 
 const VIDEO_EXTENSIONS = new Set(['.mkv', '.mp4', '.avi', '.mov', '.webm', '.m4v']);
 
@@ -54,6 +55,54 @@ function formatEta(seconds) {
   if (minutes > 0) return `${minutes}m ${remainingSeconds}s`;
   return `${remainingSeconds}s`;
 }
+
+function decodeParam(value) {
+  try {
+    return decodeURIComponent(value.replace(/\+/g, ' '));
+  } catch {
+    return value;
+  }
+}
+
+function parseMagnetLink(magnet) {
+  const parsed = { hash: '', name: '', trackers: [] };
+  if (!magnet || !magnet.startsWith('magnet:?')) return parsed;
+
+  const hashMatch = magnet.match(/btih:([a-zA-Z0-9]+)/i);
+  if (hashMatch) parsed.hash = hashMatch[1];
+
+  const nameMatch = magnet.match(/[?&]dn=([^&]+)/i);
+  if (nameMatch) parsed.name = decodeParam(nameMatch[1]);
+
+  const trackerRegex = /[?&]tr=([^&]+)/gi;
+  let match;
+  while ((match = trackerRegex.exec(magnet)) !== null) {
+    parsed.trackers.push(decodeParam(match[1]));
+  }
+
+  return parsed;
+}
+
+// POST /api/downloads/preview
+router.post('/preview', async (req, res) => {
+  const { magnetLink } = req.body;
+  if (!magnetLink) {
+    return res.status(400).json({ error: 'Magnet link is required' });
+  }
+
+  const parsed = parseMagnetLink(magnetLink);
+  if (!parsed.hash) {
+    return res.status(400).json({ error: 'Invalid magnet link: missing info hash (btih)' });
+  }
+
+  try {
+    const meta = await torrentDownloader.previewMagnet(magnetLink);
+    res.json({ parsed, meta });
+  } catch (error) {
+    console.error('Failed to preview magnet:', error);
+    res.status(500).json({ error: 'Failed to preview magnet' });
+  }
+});
 
 // POST /api/downloads/start
 router.post('/start', async (req, res) => {
@@ -222,6 +271,33 @@ router.post('/:hash/start', async (req, res) => {
   } catch (error) {
     console.error('Failed to start torrent:', error);
     res.status(500).json({ error: 'Failed to start torrent' });
+  }
+});
+
+// POST /api/downloads/:hash/open - open a completed download in Windows Explorer
+router.post('/:hash/open', async (req, res) => {
+  try {
+    const listData = await torrentDownloader.listTorrents();
+    const torrent = (listData.torrents || []).find(t => t[0] === req.params.hash);
+    if (!torrent) return res.status(404).json({ error: 'Torrent not found' });
+
+    const status = torrent[1];
+    if (status !== 136 && (torrent[4] || 0) < 1000) {
+      return res.status(409).json({ error: 'Download is not complete' });
+    }
+
+    const savePath = torrent._savePath || path.join(process.cwd(), 'downloads', req.params.hash);
+    if (!fs.existsSync(savePath)) return res.status(404).json({ error: 'Download folder not found' });
+
+    if (process.platform === 'win32') {
+      spawn('explorer.exe', [savePath], { detached: true, stdio: 'ignore' }).unref();
+    } else {
+      spawn(process.platform === 'darwin' ? 'open' : 'xdg-open', [savePath], { detached: true, stdio: 'ignore' }).unref();
+    }
+    res.json({ status: 'opened', path: savePath });
+  } catch (error) {
+    console.error('Failed to open download folder:', error);
+    res.status(500).json({ error: 'Failed to open download folder' });
   }
 });
 

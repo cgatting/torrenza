@@ -1,0 +1,19 @@
+services:
+  - type: web
+    name: torrenza
+    runtime: docker
+    plan: starter
+    healthCheckPath: /health
+    disk:
+      name: torrenza-data
+      mountPath: /var/data
+      sizeGB: 10
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: TORRENZA_DATA_DIR
+        value: /var/data
+      - key: TORRENZA_DOWNLOAD_DIR
+        value: /var/data/downloads
+      - key: TORRENZA_PYTHON
+        value: python3

@@ -11,13 +11,14 @@ const useAppStore = create((set, get) => ({
     listenPort: 6881,
     sslVerification: true,
     copyrightFilter: true,
-    enabledSources: ['1337x', 'Eztv', 'KickassTorrents', 'Limetorrents', 'Rarbg', 'ThePirateBay', 'Torrent9', 'TorrentProject', 'Torrentz2', 'Yts'],
+    enabledSources: ['Bitsearch', 'YourBittorrent', 'TorrentFunk', 'The Pirate Bay', 'YTS', '1337x', 'Nyaa', 'LimeTorrents'],
   },
   ui: {
     sidebarCollapsed: false,
     activePage: 'dashboard',
     toasts: [],
     selectedTorrentHash: null,
+    pendingSearch: '',
   },
 
   setTorrents: (torrents) => set({ torrents }),
@@ -55,6 +56,9 @@ const useAppStore = create((set, get) => ({
   })),
   setSelectedTorrent: (hash) => set((state) => ({
     ui: { ...state.ui, selectedTorrentHash: hash }
+  })),
+  setPendingSearch: (query) => set((state) => ({
+    ui: { ...state.ui, pendingSearch: query }
   })),
 
   addToast: (toast) => {

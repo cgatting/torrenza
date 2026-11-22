@@ -52,7 +52,7 @@ class TorrentDownloaderManager {
   }
 
   getDefaultDownloadBaseDir() {
-    return path.join(this.getProjectRoot(), 'downloads');
+    return process.env.TORRENZA_DOWNLOAD_DIR || path.join(this.getProjectRoot(), 'downloads');
   }
 
   sanitizePathSegment(value, fallback) {
@@ -235,7 +235,49 @@ class TorrentDownloaderManager {
     if (fs.existsSync(this.pythonExecutable)) {
       return this.pythonExecutable;
     }
-    return 'python';
+    return process.env.TORRENZA_PYTHON || 'python';
+  }
+
+  getScriptPath(name) {
+    if (process.pkg) {
+      const runtimeDir = path.join(path.dirname(process.execPath), 'data', 'runtime');
+      fs.mkdirSync(runtimeDir, { recursive: true });
+      const target = path.join(runtimeDir, name);
+      const src = path.join(__dirname, name);
+      if (!fs.existsSync(target) && fs.existsSync(src)) {
+        fs.writeFileSync(target, fs.readFileSync(src));
+      }
+      return target;
+    }
+    return path.join(__dirname, name);
+  }
+
+  previewMagnet(magnet, timeout = 30) {
+    return new Promise((resolve) => {
+      const script = this.getScriptPath('torrentp_preview.py');
+      const pythonCmd = this.getPythonCommand();
+      const proc = spawn(pythonCmd, [script, magnet, String(timeout)]);
+      let out = '';
+
+      proc.stdout.on('data', (data) => {
+        out += data.toString();
+      });
+      proc.stderr.on('data', () => {
+        // stderr ignored; errors surface through the JSON result line
+      });
+      proc.on('close', () => {
+        try {
+          const lines = out.trim().split('\n');
+          const parsed = JSON.parse(lines[lines.length - 1]);
+          resolve(parsed);
+        } catch {
+          resolve({ status: 'error', message: 'Preview process produced no valid output' });
+        }
+      });
+      proc.on('error', (err) => {
+        resolve({ status: 'error', message: err.message });
+      });
+    });
   }
 
   async startTorrent(hash) {

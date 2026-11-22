@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 import { Toaster } from 'sonner';
 import AppShell from './components/AppShell';
 import DashboardPage from './pages/DashboardPage';

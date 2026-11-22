@@ -20,12 +20,14 @@ const torrentRoutes = require('./src/routes/torrents');
 const systemRoutes = require('./src/routes/system');
 const downloadRoutes = require('./src/routes/downloads');
 const settingsRoutes = require('./src/routes/settings');
+const providerRoutes = require('./src/routes/providers');
 
 // Mount Routes
 app.use('/api/torrents', torrentRoutes);
 app.use('/api/system', systemRoutes);
 app.use('/api/downloads', downloadRoutes);
 app.use('/api/settings', settingsRoutes);
+app.use('/api/providers', providerRoutes);
 
 // Serve the bundled frontend from the backend dist folder.
 // In packaged builds, pkg snapshots this directory under C:\snapshot\backend\dist.

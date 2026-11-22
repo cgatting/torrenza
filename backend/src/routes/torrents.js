@@ -1,9 +1,7 @@
 const express = require('express');
 const router = express.Router();
-const TorrentSearchApi = require('torrent-search-api');
 const { readSettings, normalizeSources } = require('../services/settingsStore');
-
-TorrentSearchApi.enablePublicProviders();
+const { searchProvider, resolveMagnet, runConcurrent, DETAIL_FETCH_CONCURRENCY, SEARCH_TIMEOUT_MS } = require('../services/torrentSearch');
 
 const FILE_TYPE_PATTERNS = {
   video: /\.(mkv|mp4|avi|mov|webm|m4v|wmv|flv)\b|(?:^|[\s._-])(720p|1080p|2160p|4k|webrip|bluray|brrip|hdrip|x264|x265|h264|h265|hevc)(?:[\s._-]|$)/i,
@@ -42,8 +40,23 @@ function inferFileType(name) {
   return match ? match[0] : 'other';
 }
 
+function withTimeout(promise, timeoutMs, message) {
+  let timeoutId;
+  const timeoutPromise = new Promise((_, reject) => {
+    timeoutId = setTimeout(() => reject(new Error(message)), timeoutMs);
+  });
+
+  return Promise.race([promise, timeoutPromise])
+    .finally(() => clearTimeout(timeoutId));
+}
+
 async function searchSource(source, query) {
-  const torrents = await TorrentSearchApi.search([source], query, 'All', 20);
+  const torrents = await withTimeout(
+    searchProvider(source, query),
+    SEARCH_TIMEOUT_MS + 10000,
+    `${source} search timed out`
+  );
+
   return torrents.map((torrent) => ({
     ...torrent,
     provider: torrent.provider || source,
@@ -89,17 +102,29 @@ function getQueryMatchers(rawQuery) {
       new RegExp(`\\bseason\\s*0?${parseInt(match[1], 10)}\\b`, 'i'),
     ];
   });
+  const baseTokens = tokens.filter((token) => !/^s\d{1,2}$/.test(token));
 
-  return (title) => {
+  const strict = (title) => {
     const haystack = normalizeSearchString(title);
     const hasAllTokens = tokens.every((token) => haystack.includes(token));
 
     if (hasAllTokens) return true;
     if (!requiredPatterns.length) return false;
 
-    const baseTokens = tokens.filter((token) => !/^s\d{1,2}$/.test(token));
     const hasBaseTokens = baseTokens.every((token) => haystack.includes(token));
     return hasBaseTokens && requiredPatterns.some((pattern) => pattern.test(title || ''));
+  };
+
+  const loose = (title) => {
+    if (!baseTokens.length) return false;
+    const haystack = normalizeSearchString(title);
+    return baseTokens.every((token) => haystack.includes(token));
+  };
+
+  return {
+    strict,
+    loose,
+    hasSeasonFilter: requiredPatterns.length > 0,
   };
 }
 
@@ -146,56 +171,74 @@ router.get('/search', async (req, res) => {
     }
 
     const queryVariants = getQueryVariants(query);
-    const matchesQuery = getQueryMatchers(query);
+    const matchers = getQueryMatchers(query);
     const enabledSources = normalizeSources(readSettings().enabledSources);
-    const sourceResults = await Promise.allSettled(
-      enabledSources.flatMap((source) => queryVariants.map((variant) => searchSource(source, variant)))
-    );
-    const sourcesFailed = [];
-    const searchTargets = enabledSources.flatMap((source) => queryVariants.map((variant) => ({ source, variant })));
-    const torrents = dedupeTorrents(sourceResults.flatMap((result, index) => {
-      if (result.status === 'fulfilled') return result.value;
 
-      sourcesFailed.push({
-        source: searchTargets[index].source,
-        query: searchTargets[index].variant,
-        error: result.reason && result.reason.message ? result.reason.message : 'Search failed',
-      });
-      return [];
-    })).filter((torrent) => matchesQuery(torrent.title));
-
-    const results = await Promise.all(
-      torrents.map(async (torrent) => {
-        let magnetLink = torrent.magnet || '';
-
-        // Some providers return search results without direct magnet links.
-        // Try resolving the magnet lazily so the frontend can start downloads.
-        if (!magnetLink) {
+    const sourceResults = await Promise.all(
+      enabledSources.map(async (source) => {
+        const failures = [];
+        let results = [];
+        for (const variant of queryVariants) {
           try {
-            magnetLink = await TorrentSearchApi.getMagnet(torrent);
-          } catch (resolveError) {
-            magnetLink = '';
+            const rows = await searchSource(source, variant);
+            const relevant = rows.filter((row) => matchers.strict(row.title));
+            if (relevant.length) {
+              results = rows;
+              break;
+            }
+            if (rows.length) results = rows;
+          } catch (error) {
+            failures.push({
+              source,
+              query: variant,
+              error: error && error.message ? error.message : 'Search failed',
+            });
+            break;
           }
         }
-
-        const hashMatch = magnetLink && magnetLink.match(/btih:([a-fA-F0-9]+)/i);
-        const sizeBytes = parseSizeToBytes(torrent.size);
-        const inferredType = inferFileType(torrent.title);
-        return {
-          name: torrent.title,
-          size: torrent.size || 'N/A',
-          sizeBytes,
-          fileType: inferredType,
-          seeders: parseInt(torrent.seeds) || 0,
-          leechers: parseInt(torrent.peers) || 0,
-          format: torrent.provider || 'Unknown',
-          magnetLink,
-          hasMagnet: Boolean(magnetLink),
-          hash: hashMatch ? hashMatch[1] : '',
-          engine: torrent.provider
-        };
+        return { source, results, failures };
       })
     );
+
+    const sourcesFailed = [];
+    let torrents = dedupeTorrents(sourceResults.flatMap((entry) => {
+      sourcesFailed.push(...entry.failures);
+      return entry.results;
+    })).filter((torrent) => matchers.strict(torrent.title));
+
+    if (!torrents.length && matchers.hasSeasonFilter) {
+      torrents = dedupeTorrents(sourceResults.flatMap((entry) => entry.results))
+        .filter((torrent) => matchers.loose(torrent.title));
+    }
+
+    // Select the strongest results across providers before applying the result limit.
+    torrents.sort((a, b) => (Number(b.seeds) || 0) - (Number(a.seeds) || 0));
+
+    const magnetLinks = await runConcurrent(
+      torrents.slice(0, 30),
+      DETAIL_FETCH_CONCURRENCY,
+      async (torrent) => resolveMagnet(torrent)
+    );
+
+    const results = torrents.slice(0, 30).map((torrent, index) => {
+      const magnetLink = magnetLinks[index] || '';
+      const hashMatch = magnetLink && magnetLink.match(/btih:([a-fA-F0-9]+)/i);
+      const sizeBytes = parseSizeToBytes(torrent.size);
+      const inferredType = inferFileType(torrent.title);
+      return {
+        name: torrent.title,
+        size: torrent.size || 'N/A',
+        sizeBytes,
+        fileType: inferredType,
+        seeders: parseInt(torrent.seeds) || 0,
+        leechers: parseInt(torrent.peers) || 0,
+        format: torrent.provider || 'Unknown',
+        magnetLink,
+        hasMagnet: Boolean(magnetLink),
+        hash: hashMatch ? hashMatch[1] : '',
+        engine: torrent.provider
+      };
+    });
 
     const filteredResults = results.filter((result) => {
       if (fileType !== 'all' && result.fileType !== fileType) return false;
@@ -226,6 +269,7 @@ router.get('/search', async (req, res) => {
       totalCount: sortedResults.length,
       unfilteredCount: results.length,
       sourcesSearched: enabledSources,
+      sourceResultCounts: Object.fromEntries(sourceResults.map((entry) => [entry.source, entry.results.length])),
       sourcesFailed,
     });
   } catch (error) {

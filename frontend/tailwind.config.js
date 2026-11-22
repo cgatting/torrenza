@@ -9,20 +9,20 @@ export default {
     extend: {
       colors: {
         primary: {
-          DEFAULT: '#4CAF50',
+          DEFAULT: '#e89557',
           50: '#E8F5E9',
           100: '#C8E6C9',
           200: '#A5D6A7',
           300: '#81C784',
           400: '#66BB6A',
-          500: '#4CAF50',
-          600: '#43A047',
+          500: '#e89557',
+          600: '#d47b43',
           700: '#388E3C',
           800: '#2E7D32',
           900: '#1B5E20',
         },
         surface: {
-          DEFAULT: '#0f1117',
+          DEFAULT: '#121113',
           50: '#f5f5f5',
           100: '#e8e8ed',
           200: '#d1d1d9',
@@ -35,13 +35,13 @@ export default {
           900: '#08080f',
         },
         elevated: {
-          DEFAULT: '#1a1a2e',
-          hover: '#252540',
+          DEFAULT: '#232025',
+          hover: '#2d2930',
         },
         border: {
-          DEFAULT: '#2a2a3e',
+          DEFAULT: '#35313a',
           subtle: '#1e1e30',
-          active: '#4CAF50',
+          active: '#e89557',
         },
         accent: {
           cyan: '#00D9FF',
