@@ -87,6 +87,19 @@ export default function DashboardPage() {
         </div>
       </div>
 
+      <a
+        href="https://www.qbittorrent.org/download"
+        target="_blank"
+        rel="noreferrer"
+        className="card flex items-center justify-between gap-4 border-primary/20 hover:border-primary/50 transition-colors group"
+      >
+        <div>
+          <div className="text-sm font-semibold text-white group-hover:text-primary transition-colors">Need a torrent app on this device?</div>
+          <p className="text-xs text-gray-400 mt-1">Download qBittorrent to open magnet links and save downloads on your device.</p>
+        </div>
+        <span className="btn-primary text-sm flex-shrink-0">Get qBittorrent ↗</span>
+      </a>
+
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard
           color="bg-primary/12 text-primary"
