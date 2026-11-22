@@ -294,6 +294,8 @@ export default function SearchPage() {
   const [magnetInput, setMagnetInput] = useState('');
   const [previewing, setPreviewing] = useState(false);
   const [magnetPreview, setMagnetPreview] = useState(null);
+  const [pendingHandoff, setPendingHandoff] = useState(null);
+  const [checkingTorrent, setCheckingTorrent] = useState(false);
   const [previewError, setPreviewError] = useState('');
   const [magnetDownloading, setMagnetDownloading] = useState(false);
   const [magnetOpen, setMagnetOpen] = useState(false);
@@ -402,27 +404,48 @@ export default function SearchPage() {
     ));
   }, []);
 
+  const inspectTorrent = (preview) => {
+    const files = preview?.meta?.files || [];
+    const riskyExtensions = /\.(exe|dll|msi|bat|cmd|ps1|vbs|vbe|js|jse|wsf|wsh|hta|scr|com|pif|lnk|jar|apk|app|deb|rpm|sh|bash)$/i;
+    const findings = files.filter((file) => {
+      const name = String(file.path || '');
+      return riskyExtensions.test(name) || /\.(mkv|mp4|avi|pdf|jpg|png|zip|rar)\.(exe|scr|com|bat|cmd|js|vbs|ps1)$/i.test(name)
+        || name.split('/').some((part) => part === '..');
+    }).map((file) => file.path);
+    return { files, findings, inspected: preview?.meta?.status === 'ok' };
+  };
+
   const handleDownload = useCallback(async (result) => {
     if (downloadingHashes.has(result.hash)) return;
-
     setDownloadingHashes(prev => new Set([...prev, result.hash]));
-
     try {
       if (isHosted) {
-        openMagnet(result.magnetLink);
-        addToast({ type: 'success', message: 'Opening your torrent app on this device' });
+        setCheckingTorrent(true);
+        let preview;
+        try {
+          const response = await previewMagnet({ magnetLink: result.magnetLink });
+          preview = response.data;
+        } catch {
+          preview = null;
+        }
+        setPendingHandoff({ magnet: result.magnetLink, name: result.name, ...inspectTorrent(preview) });
       } else {
         await startDownload({ magnetLink: result.magnetLink, name: result.name, size: result.size, destination: settings.downloadPath || 'C:/Downloads' });
         addToast({ type: 'success', message: `Download started: ${result.name.slice(0, 50)}` });
       }
+    } catch (err) {
+      addToast({ type: 'error', message: `Failed to start download: ${err.message}` });
     } finally {
-      setDownloadingHashes(prev => {
-        const next = new Set(prev);
-        next.delete(result.hash);
-        return next;
-      });
+      setCheckingTorrent(false);
+      setDownloadingHashes(prev => { const next = new Set(prev); next.delete(result.hash); return next; });
     }
   }, [downloadingHashes, settings.downloadPath, addToast]);
+
+  const continueToTorrentApp = useCallback((magnet, name) => {
+    openMagnet(magnet);
+    addToast({ type: 'info', message: `Handed “${name.slice(0, 45)}” to your torrent app. Torrenza only checked torrent metadata; it did not scan downloaded files for viruses.` });
+    setPendingHandoff(null);
+  }, [addToast]);
 
   const handleCopyMagnet = useCallback(async (result) => {
     try {
@@ -459,8 +482,10 @@ export default function SearchPage() {
     const name = magnetPreview?.parsed?.name || 'Download from magnet link';
     setMagnetDownloading(true);
     try {
-      if (isHosted) openMagnet(magnet);
-      else await startDownload({ magnetLink: magnet, name, size: '', destination: settings.downloadPath || 'C:/Downloads' });
+      if (isHosted) {
+        setPendingHandoff({ magnet, name, ...inspectTorrent(magnetPreview) });
+        return;
+      } else await startDownload({ magnetLink: magnet, name, size: '', destination: settings.downloadPath || 'C:/Downloads' });
       addToast({ type: 'success', message: `Download started: ${name.slice(0, 50)}` });
       setMagnetInput('');
       setMagnetPreview(null);
@@ -474,6 +499,16 @@ export default function SearchPage() {
 
   return (
     <div className="space-y-6 animate-fade-in">
+      {pendingHandoff && <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-4" role="dialog" aria-modal="true" aria-labelledby="torrent-check-title">
+        <div className="card w-full max-w-xl border-amber-500/30 shadow-2xl">
+          <div className="flex items-start gap-3"><span className="text-2xl">{pendingHandoff.findings.length ? '⚠️' : '🛡️'}</span><div className="min-w-0"><h2 id="torrent-check-title" className="text-lg font-semibold text-white">Torrent metadata check</h2><p className="mt-1 text-sm text-gray-300 break-words">{pendingHandoff.name}</p></div></div>
+          <p className="mt-4 text-sm text-gray-400">This check inspects filenames and torrent metadata only. It does not scan the files’ contents or certify that they are safe.</p>
+          {!pendingHandoff.inspected && <p className="mt-3 rounded-lg bg-amber-500/10 p-3 text-sm text-amber-200">Torrenza could not retrieve the torrent metadata, so it could not inspect the file list.</p>}
+          {pendingHandoff.findings.length > 0 && <div className="mt-3 rounded-lg bg-rose-500/10 p-3"><p className="text-sm font-medium text-rose-200">Potentially risky filenames found:</p><ul className="mt-2 max-h-36 overflow-auto list-disc pl-5 text-xs text-rose-100">{pendingHandoff.findings.slice(0, 12).map((file, i) => <li key={`${file}-${i}`} className="break-all">{file}</li>)}</ul></div>}
+          {pendingHandoff.inspected && pendingHandoff.findings.length === 0 && <p className="mt-3 text-sm text-emerald-300">No executable or script filenames were found in the metadata. This is not an antivirus scan.</p>}
+          <div className="mt-5 flex justify-end gap-2"><button className="btn-secondary" onClick={() => setPendingHandoff(null)}>Cancel</button><button className="btn-primary" onClick={() => continueToTorrentApp(pendingHandoff.magnet, pendingHandoff.name)}>Continue to torrent app ↗</button></div>
+        </div>
+      </div>}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-white">Search Torrents</h1>
