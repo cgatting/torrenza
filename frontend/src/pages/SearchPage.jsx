@@ -499,6 +499,12 @@ export default function SearchPage() {
 
   return (
     <div className="space-y-6 animate-fade-in">
+      {checkingTorrent && <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4" role="status" aria-live="polite">
+        <div className="card w-full max-w-sm border-primary/30 text-center py-8 px-6">
+          <div className="metadata-scan-art mx-auto mb-5" aria-hidden="true"><div className="metadata-scan-ring"/><div className="metadata-scan-line"/><span className="metadata-scan-point point-a"/><span className="metadata-scan-point point-b"/><span className="metadata-scan-shield">⌕</span></div>
+          <div className="section-label text-primary">PRE-HANDOFF CHECK</div><h2 className="mt-2 text-lg font-semibold text-white">Inspecting torrent metadata</h2><p className="mt-2 text-sm text-gray-400">Checking the file list for executable and script filenames…</p><p className="mt-4 text-[11px] text-gray-500">This checks names only; it does not scan file contents.</p>
+        </div>
+      </div>}
       {pendingHandoff && <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-4" role="dialog" aria-modal="true" aria-labelledby="torrent-check-title">
         <div className="card w-full max-w-xl border-amber-500/30 shadow-2xl">
           <div className="flex items-start gap-3"><span className="text-2xl">{pendingHandoff.findings.length ? '⚠️' : '🛡️'}</span><div className="min-w-0"><h2 id="torrent-check-title" className="text-lg font-semibold text-white">Torrent metadata check</h2><p className="mt-1 text-sm text-gray-300 break-words">{pendingHandoff.name}</p></div></div>
