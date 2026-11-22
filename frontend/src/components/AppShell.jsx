@@ -77,12 +77,10 @@ export default function AppShell({ children }) {
             aria-label={copy.quickSearch} placeholder={copy.quickPlaceholder} />
           <kbd>/</kbd>
         </form>
-        <button className="language-switch" onClick={() => setLanguage(language === 'en' ? 'de' : 'en')}
-          aria-label={copy.switchLanguage}
-          title={`${copy.country} · ${copy.alternateLanguage}`}>
-          <span className="language-flag" aria-hidden="true">{language === 'en' ? '🇬🇧' : '🇩🇪'}</span>
-          <span>{copy.language}</span>
-        </button>
+        <div className="language-switch" role="group" aria-label={language === 'de' ? 'Sprache auswählen' : 'Choose language'}>
+          <button type="button" aria-pressed={language === 'en'} onClick={() => setLanguage('en')}><span className="language-flag" aria-hidden="true">🇬🇧</span> English</button>
+          <button type="button" aria-pressed={language === 'de'} onClick={() => setLanguage('de')}><span className="language-flag" aria-hidden="true">🇩🇪</span> Deutsch</button>
+        </div>
       </header>
       <main id="workspace-content" ref={main} className="workspace-main" tabIndex={-1}>
         <div className="workspace-content">{children}</div>
